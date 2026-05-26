@@ -1,11 +1,14 @@
+import logging
+
 from eth_account import Account
-from fastapi import HTTPException, logger
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import HTTPException
+from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select
 
 from app.core.security import crypto_manager
 from app.models.user import User
 
+logger = logging.getLogger(__name__)
 
 class UserService:
     @staticmethod
@@ -17,11 +20,11 @@ class UserService:
 
         try:
             pk = (private_key
-                  if private_key.startswith("0x") else "0x{}".format(private_key))
+                  if private_key.startswith("0x") else f"0x{private_key}")
             account = Account.from_key(pk)
             linked_signer_address = account.address
         except Exception as e:
-            logger.error("Invalid private key provided: {}", e)
+            logger.error("Invalid private key provided: %s", e)
 
             raise HTTPException(
                 status_code=400,
@@ -29,8 +32,8 @@ class UserService:
             )
         # TODO:get main_wallet_address from JWT token (dependency get_current_user)
         stmt = select(User).where(User.address == main_wallet)
-        result = await session.execute(stmt)
-        user = result.scalar_one_or_none()
+        result = await session.exec(stmt)
+        user = result.one_or_none()
 
         if not user:
             user = User(
@@ -46,7 +49,7 @@ class UserService:
         await session.refresh(user)
 
         logger.info(
-            "Successfully linked signer {} for user {}",
+            "Successfully linked signer %s for user %s",
             linked_signer_address,
             user.address
         )

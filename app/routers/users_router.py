@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.db_helper import db_helper
 from app.models.user import UserResponse
@@ -10,9 +10,9 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.post("/link-signer", response_model=UserResponse)
 async def setup_linked_signer(payload: LinkSignerRequest, session: AsyncSession = Depends(db_helper.session_dependency)):
-    user = await UserService.proccess_linked_signer(
-        sesion=session,
-        main_wallet=payload.main_wallet,
+    user = await UserService.process_linked_signer(
+        session=session,
+        main_wallet=payload.main_wallet_address,
         private_key=payload.linked_signer_private_key,
     )
 
