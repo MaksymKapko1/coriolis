@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     db_url: str
     db_echo: bool = False
     encryption_master_key: str = ""
+    privy_app_id: str = ""
 
     api_v1_prefix: str = "/api/v1"
 
