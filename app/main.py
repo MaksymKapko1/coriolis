@@ -11,7 +11,7 @@ app = FastAPI(
 )
 
 origins = [
-    "http://localhost:5173",  # Дефолтный порт Vite
+    "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
 
@@ -28,7 +28,6 @@ async def root():
     return {"status": "Coriolis API is running successfully"}
 
 
-# Эндпоинт для проверки связи с базой данных
 @app.get("/db-check")
 async def check_db_connection(
     session: AsyncSession = Depends(db_helper.session_dependency)
