@@ -6,17 +6,16 @@ from starlette import status
 from starlette.exceptions import HTTPException
 
 from app.core.security import crypto_manager
+from app.crud.user_crud import get_user_by_address
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
 
 async def get_subaccount_and_signer(
-    main_wallet: str, db_session: AsyncSession
+    main_wallet: str, session: AsyncSession
 ) -> tuple[str, str]:
-    stmt = select(User).where(User.address == main_wallet)
-    result = await db_session.exec(stmt)
-    user = result.one_or_none()
+    user = await get_user_by_address(session, main_wallet)
 
     if not user:
         raise HTTPException(
