@@ -18,12 +18,14 @@ async def place_market_order(
     main_wallet: str,
     session: AsyncSession,
 ) -> dict:
+
     linked_signer_address, private_key = await get_subaccount_and_signer(
         main_wallet, session
     )
     client = NadoClient(network=settings.nado_network, private_key=private_key)
 
     amount = to_x18(payload.amount) if payload.is_buy else -to_x18(payload.amount)
+
     logger.info(
         "Placing market order | wallet=%s | signer=%s | product=%s | side=%s | amount=%s",
         main_wallet,

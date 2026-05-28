@@ -716,14 +716,14 @@ true posixrules
       <ObjectId>5</ObjectId>
       <OwnerName>postgres</OwnerName>
     </database>
-    <role id="4" parent="1" name="pg_checkpoint">
-      <ObjectId>4544</ObjectId>
-    </role>
-    <role id="5" parent="1" name="pg_database_owner">
+    <role id="4" parent="1" name="pg_database_owner">
       <ObjectId>6171</ObjectId>
     </role>
-    <role id="6" parent="1" name="pg_execute_server_program">
-      <ObjectId>4571</ObjectId>
+    <role id="5" parent="1" name="pg_read_all_data">
+      <ObjectId>6181</ObjectId>
+    </role>
+    <role id="6" parent="1" name="pg_write_all_data">
+      <ObjectId>6182</ObjectId>
     </role>
     <role id="7" parent="1" name="pg_monitor">
       <ObjectId>3373</ObjectId>
@@ -731,29 +731,29 @@ true posixrules
 3375
 3377</RoleGrants>
     </role>
-    <role id="8" parent="1" name="pg_read_all_data">
-      <ObjectId>6181</ObjectId>
-    </role>
-    <role id="9" parent="1" name="pg_read_all_settings">
+    <role id="8" parent="1" name="pg_read_all_settings">
       <ObjectId>3374</ObjectId>
     </role>
-    <role id="10" parent="1" name="pg_read_all_stats">
+    <role id="9" parent="1" name="pg_read_all_stats">
       <ObjectId>3375</ObjectId>
+    </role>
+    <role id="10" parent="1" name="pg_stat_scan_tables">
+      <ObjectId>3377</ObjectId>
     </role>
     <role id="11" parent="1" name="pg_read_server_files">
       <ObjectId>4569</ObjectId>
     </role>
-    <role id="12" parent="1" name="pg_signal_backend">
+    <role id="12" parent="1" name="pg_write_server_files">
+      <ObjectId>4570</ObjectId>
+    </role>
+    <role id="13" parent="1" name="pg_execute_server_program">
+      <ObjectId>4571</ObjectId>
+    </role>
+    <role id="14" parent="1" name="pg_signal_backend">
       <ObjectId>4200</ObjectId>
     </role>
-    <role id="13" parent="1" name="pg_stat_scan_tables">
-      <ObjectId>3377</ObjectId>
-    </role>
-    <role id="14" parent="1" name="pg_write_all_data">
-      <ObjectId>6182</ObjectId>
-    </role>
-    <role id="15" parent="1" name="pg_write_server_files">
-      <ObjectId>4570</ObjectId>
+    <role id="15" parent="1" name="pg_checkpoint">
+      <ObjectId>4544</ObjectId>
     </role>
     <role id="16" parent="1" name="postgres">
       <BypassRls>1</BypassRls>
@@ -4135,151 +4135,5 @@ true posixrules
       <StateNumber>518</StateNumber>
       <OwnerName>pg_database_owner</OwnerName>
     </schema>
-    <table id="263" parent="262" name="user">
-      <DetailsLevel>2</DetailsLevel>
-      <ObjectId>16389</ObjectId>
-      <StateNumber>737</StateNumber>
-      <AccessMethodId>2</AccessMethodId>
-      <OwnerName>postgres</OwnerName>
-    </table>
-    <table id="264" parent="262" name="users">
-      <DetailsLevel>2</DetailsLevel>
-      <ObjectId>16397</ObjectId>
-      <StateNumber>738</StateNumber>
-      <AccessMethodId>2</AccessMethodId>
-      <OwnerName>postgres</OwnerName>
-    </table>
-    <column id="265" parent="263" name="address">
-      <NotNull>1</NotNull>
-      <Position>1</Position>
-      <StateNumber>737</StateNumber>
-      <StoredType>varchar|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="266" parent="263" name="linked_signer_address">
-      <Position>2</Position>
-      <StateNumber>737</StateNumber>
-      <StoredType>varchar|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="267" parent="263" name="is_approved">
-      <NotNull>1</NotNull>
-      <Position>3</Position>
-      <StateNumber>737</StateNumber>
-      <StoredType>boolean|0s</StoredType>
-      <TypeId>16</TypeId>
-    </column>
-    <column id="268" parent="263" name="id">
-      <NotNull>1</NotNull>
-      <Position>4</Position>
-      <StateNumber>737</StateNumber>
-      <StoredType>uuid|0s</StoredType>
-      <TypeId>2950</TypeId>
-    </column>
-    <column id="269" parent="263" name="encrypted_linked_signer_key">
-      <Position>5</Position>
-      <StateNumber>737</StateNumber>
-      <StoredType>varchar|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="270" parent="263" name="created_at">
-      <NotNull>1</NotNull>
-      <Position>6</Position>
-      <StateNumber>737</StateNumber>
-      <StoredType>timestamp|0s</StoredType>
-      <TypeId>1114</TypeId>
-    </column>
-    <index id="271" parent="263" name="ix_user_address">
-      <ColNames>address</ColNames>
-      <ObjectId>16396</ObjectId>
-      <StateNumber>737</StateNumber>
-      <Unique>1</Unique>
-      <AccessMethodId>403</AccessMethodId>
-      <CollationNames>default</CollationNames>
-      <CollationIds>100</CollationIds>
-      <CollationParentNames>pg_catalog</CollationParentNames>
-    </index>
-    <index id="272" parent="263" name="user_pkey">
-      <ColNames>id</ColNames>
-      <NameSurrogate>1</NameSurrogate>
-      <ObjectId>16394</ObjectId>
-      <Primary>1</Primary>
-      <StateNumber>737</StateNumber>
-      <Unique>1</Unique>
-      <AccessMethodId>403</AccessMethodId>
-    </index>
-    <key id="273" parent="263" name="user_pkey">
-      <NameSurrogate>1</NameSurrogate>
-      <ObjectId>16395</ObjectId>
-      <Primary>1</Primary>
-      <StateNumber>737</StateNumber>
-      <UnderlyingIndexId>16394</UnderlyingIndexId>
-    </key>
-    <column id="274" parent="264" name="address">
-      <NotNull>1</NotNull>
-      <Position>1</Position>
-      <StateNumber>738</StateNumber>
-      <StoredType>varchar|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="275" parent="264" name="linked_signer_address">
-      <Position>2</Position>
-      <StateNumber>738</StateNumber>
-      <StoredType>varchar|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="276" parent="264" name="is_approved">
-      <NotNull>1</NotNull>
-      <Position>3</Position>
-      <StateNumber>738</StateNumber>
-      <StoredType>boolean|0s</StoredType>
-      <TypeId>16</TypeId>
-    </column>
-    <column id="277" parent="264" name="id">
-      <NotNull>1</NotNull>
-      <Position>4</Position>
-      <StateNumber>738</StateNumber>
-      <StoredType>uuid|0s</StoredType>
-      <TypeId>2950</TypeId>
-    </column>
-    <column id="278" parent="264" name="encrypted_linked_signer_key">
-      <Position>5</Position>
-      <StateNumber>738</StateNumber>
-      <StoredType>varchar|0s</StoredType>
-      <TypeId>1043</TypeId>
-    </column>
-    <column id="279" parent="264" name="created_at">
-      <NotNull>1</NotNull>
-      <Position>6</Position>
-      <StateNumber>738</StateNumber>
-      <StoredType>timestamp|0s</StoredType>
-      <TypeId>1114</TypeId>
-    </column>
-    <index id="280" parent="264" name="ix_users_address">
-      <ColNames>address</ColNames>
-      <ObjectId>16404</ObjectId>
-      <StateNumber>738</StateNumber>
-      <Unique>1</Unique>
-      <AccessMethodId>403</AccessMethodId>
-      <CollationNames>default</CollationNames>
-      <CollationIds>100</CollationIds>
-      <CollationParentNames>pg_catalog</CollationParentNames>
-    </index>
-    <index id="281" parent="264" name="users_pkey">
-      <ColNames>id</ColNames>
-      <NameSurrogate>1</NameSurrogate>
-      <ObjectId>16402</ObjectId>
-      <Primary>1</Primary>
-      <StateNumber>738</StateNumber>
-      <Unique>1</Unique>
-      <AccessMethodId>403</AccessMethodId>
-    </index>
-    <key id="282" parent="264" name="users_pkey">
-      <NameSurrogate>1</NameSurrogate>
-      <ObjectId>16403</ObjectId>
-      <Primary>1</Primary>
-      <StateNumber>738</StateNumber>
-      <UnderlyingIndexId>16402</UnderlyingIndexId>
-    </key>
   </database-model>
 </dataSource>
