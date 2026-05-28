@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     privy_app_id: str = ""
     privy_app_secret: str = ""
     api_v1_prefix: str = "/api/v1"
+    nado_network: str = "testnet"
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env", env_file_encoding="utf-8", extra="ignore"
