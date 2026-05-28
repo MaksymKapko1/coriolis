@@ -7,9 +7,10 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.db_helper import db_helper
-from app.routers import users_router
+from app.routers import users_router, orders
 
 logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,6 +20,7 @@ async def lifespan(app: FastAPI):
     logger.info("Database setup complete.")
     yield
 
+
 app = FastAPI(
     title="Coriolis Trading Terminal",
     version="0.1.0",
@@ -26,8 +28,8 @@ app = FastAPI(
 )
 
 
-
 app.include_router(users_router.router, prefix=settings.api_v1_prefix)
+app.include_router(orders.router, prefix=settings.api_v1_prefix)
 
 origins = [
     "http://localhost:5173",
@@ -42,8 +44,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 async def root():
     return {"status": "Coriolis API is running successfully"}
-
-

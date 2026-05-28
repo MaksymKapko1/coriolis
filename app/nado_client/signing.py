@@ -4,7 +4,7 @@ Uses eth_account directly, no pydantic dependency.
 """
 
 from eth_account import Account
-from eth_account.messages import encode_structured_data
+from eth_account.messages import encode_typed_data
 
 # EIP-712 type definitions for Order
 ORDER_EIP712_TYPES = {
@@ -44,26 +44,38 @@ def sign_order(
     verifying_contract = gen_order_verifying_contract(product_id)
     sender_hex = bytes32_to_hex(sender_bytes32)
 
-    typed_data = {
-        "types": ORDER_EIP712_TYPES,
-        "primaryType": "Order",
-        "domain": {
-            "name": "Nado",
-            "version": "0.0.1",
-            "chainId": chain_id,
-            "verifyingContract": verifying_contract,
-        },
-        "message": {
-            "sender": sender_bytes32,
-            "priceX18": price_x18,
-            "amount": amount,
-            "expiration": expiration,
-            "nonce": nonce,
-            "appendix": appendix,
-        },
+    domain_data = {
+        "name": "Nado",
+        "version": "0.0.1",
+        "chainId": chain_id,
+        "verifyingContract": verifying_contract,
     }
 
-    encoded = encode_structured_data(typed_data)
+    message_types = {
+        "Order": [
+            {"name": "sender", "type": "bytes32"},
+            {"name": "priceX18", "type": "int128"},
+            {"name": "amount", "type": "int128"},
+            {"name": "expiration", "type": "uint64"},
+            {"name": "nonce", "type": "uint64"},
+            {"name": "appendix", "type": "uint128"},
+        ]
+    }
+
+    message_data = {
+        "sender": sender_bytes32,
+        "priceX18": price_x18,
+        "amount": amount,
+        "expiration": expiration,
+        "nonce": nonce,
+        "appendix": appendix,
+    }
+
+    encoded = encode_typed_data(
+        domain_data=domain_data, message_types=message_types, message_data=message_data
+    )
+
     account = Account.from_key(private_key)
     signed = account.sign_message(encoded)
+
     return signed.signature.hex(), sender_hex

@@ -36,7 +36,7 @@ async def get_subaccount_and_signer(
         )
 
     try:
-        decrypted_private_key = crypto_manager.decrypt_private_key(
+        decrypted_private_key = crypto_manager.decrypt_key(
             user.encrypted_linked_signer_key
         )
     except ValueError:

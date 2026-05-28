@@ -1,3 +1,3 @@
-from nado_client.client import NadoClient, OrderResult
+from app.nado_client.client import NadoClient, OrderResult
 
 __all__ = ["NadoClient", "OrderResult"]

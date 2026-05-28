@@ -9,8 +9,8 @@ from typing import Optional
 
 import requests
 
-from nado_client.signing import sign_order
-from nado_client.utils import (
+from app.nado_client.signing import sign_order
+from app.nado_client.utils import (
     OrderType,
     build_appendix,
     gen_order_nonce,
@@ -172,7 +172,9 @@ class NadoClient:
     # ------------------------------------------------------------------
 
     def _query(self, query_type: str, params: dict) -> dict:
-        payload = {query_type: params}
+        payload = {"type": query_type}
+        payload.update(params)
+
         resp = self.session.post(f"{self.gateway_url}/query", json=payload)
         resp.raise_for_status()
         data = resp.json()
@@ -200,7 +202,7 @@ class NadoClient:
     def _get_price_increment(
         self, product_id: int, sender_address: str, subaccount_name: str
     ) -> int:
-        from nado_client.utils import subaccount_to_hex
+        from app.nado_client.utils import subaccount_to_hex
 
         sender_hex = subaccount_to_hex(sender_address, subaccount_name)
         try:

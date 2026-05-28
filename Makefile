@@ -4,7 +4,7 @@ export
 .PHONY: run db-up db-down clean
 
 run:
-	uv run uvicorn app.main:app --reload --port 8000
+	.venv/bin/python -m uvicorn app.main:app --reload --port 8000
 
 db-up:
 	docker-compose up -d postgres
