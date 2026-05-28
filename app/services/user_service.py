@@ -2,8 +2,8 @@ import logging
 
 from eth_account import Account
 from fastapi import HTTPException
-from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.security import crypto_manager
 from app.models.user import User

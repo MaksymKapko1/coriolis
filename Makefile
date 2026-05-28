@@ -1,4 +1,8 @@
+include .env
+export
+
 .PHONY: run db-up db-down clean
+
 run:
 	uv run uvicorn app.main:app --reload --port 8000
 
@@ -21,3 +25,10 @@ format:
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
+
+db-shell:
+	PGPASSWORD="$(DB_PASS)" psql \
+		-h "$(DB_HOST)" \
+		-p "$(DB_PORT)" \
+		-U "$(DB_USER)" \
+		-d "$(DB_NAME)"
