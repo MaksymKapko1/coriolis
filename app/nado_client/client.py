@@ -5,7 +5,6 @@ Handles market order placement without nado-protocol SDK dependency.
 
 import logging
 from dataclasses import dataclass
-from typing import Optional
 
 import requests
 
@@ -19,6 +18,7 @@ from app.nado_client.utils import (
     round_x18,
     subaccount_to_bytes32,
     to_x18,
+    subaccount_to_hex,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,9 +51,9 @@ DEFAULT_SLIPPAGE = 0.005  # 0.5% — same as SDK default
 @dataclass
 class OrderResult:
     status: str
-    data: Optional[dict] = None
-    error: Optional[str] = None
-    error_code: Optional[int] = None
+    data: dict | None = None
+    error: str | None = None
+    error_code: int | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -77,6 +77,98 @@ class NadoClient:
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
+    def close_position(
+        self,
+        product_id: int,
+        sender_address: str,
+        subaccount_name: str = "default",
+    ) -> OrderResult:
+        """
+        Closes an open position for given product_id.
+        Mirrors SDK's close_position: queries current balance,
+        inverts it with FOK + reduce_only.
+        """
+        sender_hex = subaccount_to_hex(sender_address, subaccount_name)
+
+        # 1. Получаем текущую позицию
+        subaccount_info = self._query("subaccount_info", {"subaccount": sender_hex})
+
+        # Ищем баланс и продукт по product_id
+        all_balances = subaccount_info.get("spot_balances", []) + subaccount_info.get(
+            "perp_balances", []
+        )
+        all_products = subaccount_info.get("spot_products", []) + subaccount_info.get(
+            "perp_products", []
+        )
+
+        balance = next((b for b in all_balances if b["product_id"] == product_id), None)
+        product = next((p for p in all_products if p["product_id"] == product_id), None)
+
+        if not balance or not product:
+            return OrderResult(
+                status="failure", error=f"No position found for product_id={product_id}"
+            )
+
+        current_amount = int(balance["balance"]["amount"])
+        if current_amount == 0:
+            return OrderResult(status="failure", error="Position is already closed")
+
+        oracle_price = int(product["oracle_price_x18"])
+        size_increment = int(product["book_info"]["size_increment"])
+        price_increment = int(product["book_info"]["price_increment_x18"])
+
+        # 2. Closing price с 0.5% spread (как в SDK)
+        spread = to_x18(0.005)
+        if current_amount > 0:  # long → закрываем sell по цене чуть ниже
+            closing_price = mul_x18(oracle_price, to_x18(1) - spread)
+        else:  # short → закрываем buy по цене чуть выше
+            closing_price = mul_x18(oracle_price, to_x18(1) + spread)
+
+        final_price = round_x18(closing_price, price_increment)
+        closing_amount = -round_x18(current_amount, size_increment)  # инвертируем
+
+        # 3. Подписываем и отправляем
+        sender_bytes32 = subaccount_to_bytes32(sender_address, subaccount_name)
+        nonce = gen_order_nonce()
+        expiration = get_expiration_timestamp(1000)
+        appendix = build_appendix(OrderType.FOK, reduce_only=True)  # ← reduce_only!
+
+        signature, sender_hex_signed = sign_order(
+            sender_bytes32=sender_bytes32,
+            price_x18=final_price,
+            amount=closing_amount,
+            expiration=expiration,
+            nonce=nonce,
+            appendix=appendix,
+            product_id=product_id,
+            chain_id=self.chain_id,
+            private_key=self.private_key,
+        )
+
+        payload = {
+            "place_order": {
+                "product_id": product_id,
+                "order": {
+                    "sender": sender_hex_signed,
+                    "priceX18": str(final_price),
+                    "amount": str(closing_amount),
+                    "expiration": str(expiration),
+                    "nonce": str(nonce),
+                    "appendix": str(appendix),
+                },
+                "signature": signature,
+            }
+        }
+
+        logger.info(
+            "Closing position | product=%s | current_amount=%s | closing_amount=%s | sender=%s",
+            product_id,
+            current_amount,
+            closing_amount,
+            sender_hex,
+        )
+
+        return self._execute(payload)
 
     def place_market_order(
         self,
@@ -176,9 +268,23 @@ class NadoClient:
         payload.update(params)
 
         resp = self.session.post(f"{self.gateway_url}/query", json=payload)
+        if resp.status_code != 200:
+            logger.warning(
+                "Nado query failed | type=%s | status=%s | response=%s | payload=%s",
+                query_type,
+                resp.status_code,
+                resp.text[:2000],
+                payload,
+            )
         resp.raise_for_status()
         data = resp.json()
         if data.get("status") != "success":
+            logger.warning(
+                "Nado query returned failure | type=%s | response=%s | payload=%s",
+                query_type,
+                data,
+                payload,
+            )
             raise RuntimeError(f"Query failed: {data.get('error')}")
         return data["data"]
 
@@ -208,10 +314,7 @@ class NadoClient:
         try:
             data = self._query(
                 "subaccount_info",
-                {
-                    "subaccount": sender_hex,
-                    "txns": [{"type": "order", "product_id": product_id}],
-                },
+                {"subaccount": sender_hex},
             )
             # Try to get price_increment from perp products
             for p in data.get("perp_products", []):

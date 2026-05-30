@@ -15,6 +15,6 @@ async def get_user_by_address(session: AsyncSession, main_wallet: str) -> User:
 
 
 async def create_user(session: AsyncSession, main_wallet: str) -> User:
-    user = User(main_wallet=main_wallet, is_approved=True)
+    user = User(address=main_wallet, is_approved=True)
     session.add(user)
     return user
