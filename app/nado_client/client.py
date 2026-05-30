@@ -259,6 +259,95 @@ class NadoClient:
 
         return self._execute(payload)
 
+    def place_batch_orders(
+        self,
+        orders: list[dict],  # [{"product_id": 1, "amount": 1000, "is_buy": True}, ...]
+        sender_address: str,
+        subaccount_name: str = "default",
+        stop_on_failure: bool = False,
+    ) -> OrderResult:
+        """
+        Place multiple orders in a single request.
+        Each order is signed individually, then sent as one batch.
+        """
+        signed_orders = []
+
+        for order in orders:
+            product_id = order["product_id"]
+            amount = order["amount"]  # уже в x18
+
+            # Берём top-of-book для каждого продукта
+            is_buy = amount > 0
+            orderbook = self._get_market_liquidity(product_id, depth=1)
+            bids = orderbook.get("bids", [])
+            asks = orderbook.get("asks", [])
+
+            if is_buy and not asks:
+                return OrderResult(
+                    status="failure", error=f"No asks for product {product_id}"
+                )
+            if not is_buy and not bids:
+                return OrderResult(
+                    status="failure", error=f"No bids for product {product_id}"
+                )
+
+            raw_price = int(asks[0][0]) if is_buy else int(bids[0][0])
+            slippage_x18 = to_x18(DEFAULT_SLIPPAGE)
+            market_price = (
+                mul_x18(raw_price, to_x18(1) + slippage_x18)
+                if is_buy
+                else mul_x18(raw_price, to_x18(1) - slippage_x18)
+            )
+
+            price_increment = self._get_price_increment(
+                product_id, sender_address, subaccount_name
+            )
+            final_price = round_x18(market_price, price_increment)
+
+            sender_bytes32 = subaccount_to_bytes32(sender_address, subaccount_name)
+            nonce = gen_order_nonce()
+            expiration = get_expiration_timestamp(1000)
+            appendix = build_appendix(OrderType.FOK)
+
+            signature, sender_hex = sign_order(
+                sender_bytes32=sender_bytes32,
+                price_x18=final_price,
+                amount=amount,
+                expiration=expiration,
+                nonce=nonce,
+                appendix=appendix,
+                product_id=product_id,
+                chain_id=self.chain_id,
+                private_key=self.private_key,
+            )
+
+            signed_orders.append(
+                {
+                    "product_id": product_id,
+                    "order": {
+                        "sender": sender_hex,
+                        "priceX18": str(final_price),
+                        "amount": str(amount),
+                        "expiration": str(expiration),
+                        "nonce": str(nonce),
+                        "appendix": str(appendix),
+                    },
+                    "signature": signature,
+                }
+            )
+
+        payload = {
+            "place_orders": {
+                "orders": signed_orders,
+                "stop_on_failure": stop_on_failure,
+            }
+        }
+
+        logger.info(
+            "Placing batch of %s orders | sender=%s", len(signed_orders), sender_address
+        )
+        return self._execute(payload)
+
     # ------------------------------------------------------------------
     # Internal HTTP helpers
     # ------------------------------------------------------------------

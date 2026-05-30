@@ -15,5 +15,7 @@ class MarketOrderCreate(SQLModel):
 
 
 class BatchOrderCreate(SQLModel):
-    orders: List[MarketOrderCreate] = Field(..., description="List of orders to place atomically")
+    orders: List[MarketOrderCreate] = Field(
+        ..., description="List of orders to place atomically"
+    )
     stop_on_failure: bool = Field(default=False)
