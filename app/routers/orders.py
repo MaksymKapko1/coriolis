@@ -10,6 +10,7 @@ from app.core.db_helper import db_helper
 from app.models.close_market_order import CloseMarketOrder
 from app.models.market_order_create import MarketOrderCreate, BatchOrderCreate
 from app.services.batch_order_service import place_batch_order
+from app.services.close_order_service import execute_close_order
 from app.services.place_market_order import place_market_order
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ async def create_market_order(
         )
     return {"status": "success", "data": result}
 
+
 @router.post("/batch", status_code=status.HTTP_201_CREATED)
 async def create_batch_order(
     payload: BatchOrderCreate,
@@ -61,14 +63,15 @@ async def create_batch_order(
 
     return result
 
+
 @router.post("/close", status_code=status.HTTP_201_CREATED)
 async def close_order(
-        payload: CloseMarketOrder,
-        main_wallet: str = Depends(get_current_wallet),
-        session: AsyncSession = Depends(db_helper.session_dependency),
+    payload: CloseMarketOrder,
+    main_wallet: str = Depends(get_current_wallet),
+    session: AsyncSession = Depends(db_helper.session_dependency),
 ):
     try:
-        result = await close_order(
+        result = await execute_close_order(
             payload=payload, main_wallet=main_wallet, session=session
         )
     except HTTPException:
