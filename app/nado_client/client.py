@@ -17,8 +17,8 @@ from app.nado_client.utils import (
     mul_x18,
     round_x18,
     subaccount_to_bytes32,
-    to_x18,
     subaccount_to_hex,
+    to_x18,
 )
 
 logger = logging.getLogger(__name__)
@@ -161,7 +161,8 @@ class NadoClient:
         }
 
         logger.info(
-            "Closing position | product=%s | current_amount=%s | closing_amount=%s | sender=%s",
+            "Closing position | product=%s | current_amount=%s | "
+            "closing_amount=%s | sender=%s",
             product_id,
             current_amount,
             closing_amount,
@@ -173,7 +174,8 @@ class NadoClient:
     def place_market_order(
         self,
         product_id: int,
-        amount: int,
+        notional_usd: float,
+        is_buy: bool,
         sender_address: str,
         subaccount_name: str = "default",
         slippage: float = DEFAULT_SLIPPAGE,
@@ -183,13 +185,18 @@ class NadoClient:
 
         Args:
             product_id:       Nado product ID.
-            amount:           Signed amount in x18 (positive = buy, negative = sell).
+            notional_usd:     Quote notional amount in USD.
+            is_buy:           True = buy/long, False = sell/short.
             sender_address:   linked_signer_address (wallet that signs).
             subaccount_name:  Usually "default".
             slippage:         Slippage fraction, default 0.5%.
         """
+        if notional_usd <= 0:
+            return OrderResult(
+                status="failure", error="Order notional must be positive"
+            )
+
         # 1. Get top-of-book price
-        is_buy = amount > 0
         orderbook = self._get_market_liquidity(product_id, depth=1)
         bids = orderbook.get("bids", [])
         asks = orderbook.get("asks", [])
@@ -208,11 +215,51 @@ class NadoClient:
         else:
             market_price = mul_x18(raw_price, to_x18(1) - slippage_x18)
 
-        # Round to price increment
-        price_increment = self._get_price_increment(
-            product_id, sender_address, subaccount_name
-        )
+        try:
+            book_info = self._get_product_book_info(
+                product_id, sender_address, subaccount_name
+            )
+        except Exception as e:
+            logger.warning("Could not fetch product book info: %s", e)
+            return OrderResult(
+                status="failure",
+                error=f"Could not fetch product metadata for product {product_id}",
+            )
+
+        price_increment = book_info["price_increment_x18"]
+        size_increment = book_info["size_increment"]
+        min_size = book_info["min_size"]
+
+        if price_increment <= 0:
+            return OrderResult(
+                status="failure",
+                error=f"Invalid price increment for product {product_id}",
+            )
+        if size_increment <= 0:
+            return OrderResult(
+                status="failure",
+                error=f"Invalid size increment for product {product_id}",
+            )
+
         final_price = round_x18(market_price, price_increment)
+        amount = self._notional_to_base_amount(
+            notional_usd=notional_usd,
+            price_x18=final_price,
+            size_increment=size_increment,
+        )
+
+        if amount <= 0:
+            return OrderResult(
+                status="failure",
+                error=f"Order notional is too small for product {product_id}",
+            )
+        # if min_size > 0 and amount < min_size:
+        #     return OrderResult(
+        #         status="failure",
+        #         error=f"Order notional is below min size for product {product_id}",
+        #     )
+
+        signed_amount = amount if is_buy else -amount
 
         # 2. Build order fields
         sender_bytes32 = subaccount_to_bytes32(sender_address, subaccount_name)
@@ -224,7 +271,7 @@ class NadoClient:
         signature, sender_hex = sign_order(
             sender_bytes32=sender_bytes32,
             price_x18=final_price,
-            amount=amount,
+            amount=signed_amount,
             expiration=expiration,
             nonce=nonce,
             appendix=appendix,
@@ -240,7 +287,7 @@ class NadoClient:
                 "order": {
                     "sender": sender_hex,
                     "priceX18": str(final_price),
-                    "amount": str(amount),
+                    "amount": str(signed_amount),
                     "expiration": str(expiration),
                     "nonce": str(nonce),
                     "appendix": str(appendix),
@@ -250,9 +297,11 @@ class NadoClient:
         }
 
         logger.info(
-            "Placing market order | product=%s | amount=%s | price=%s | sender=%s",
+            "Placing market order | product=%s | notional_usd=%s | "
+            "amount=%s | price=%s | sender=%s",
             product_id,
-            amount,
+            notional_usd,
+            signed_amount,
             final_price,
             sender_hex,
         )
@@ -394,24 +443,43 @@ class NadoClient:
             "market_liquidity", {"product_id": product_id, "depth": depth}
         )
 
+    @staticmethod
+    def _notional_to_base_amount(
+        notional_usd: float,
+        price_x18: int,
+        size_increment: int,
+    ) -> int:
+        quote_amount_x18 = to_x18(notional_usd)
+        base_amount = quote_amount_x18 * 10**18 // price_x18
+        return round_x18(base_amount, size_increment)
+
+    def _get_product_book_info(
+        self, product_id: int, sender_address: str, subaccount_name: str
+    ) -> dict[str, int]:
+        sender_hex = subaccount_to_hex(sender_address, subaccount_name)
+        data = self._query(
+            "subaccount_info",
+            {"subaccount": sender_hex},
+        )
+        for product in data.get("perp_products", []) + data.get("spot_products", []):
+            if product.get("product_id") != product_id:
+                continue
+            book_info = product.get("book_info") or {}
+            return {
+                "oracle_price_x18": int(product.get("oracle_price_x18", 0)),
+                "price_increment_x18": int(book_info.get("price_increment_x18", 0)),
+                "size_increment": int(book_info.get("size_increment", 0)),
+                "min_size": int(book_info.get("min_size", 0)),
+            }
+        raise RuntimeError(f"Product {product_id} not found in subaccount info")
+
     def _get_price_increment(
         self, product_id: int, sender_address: str, subaccount_name: str
     ) -> int:
-        from app.nado_client.utils import subaccount_to_hex
-
-        sender_hex = subaccount_to_hex(sender_address, subaccount_name)
         try:
-            data = self._query(
-                "subaccount_info",
-                {"subaccount": sender_hex},
-            )
-            # Try to get price_increment from perp products
-            for p in data.get("perp_products", []):
-                if p.get("product_id") == product_id:
-                    return int(p["book_info"]["price_increment_x18"])
-            for p in data.get("spot_products", []):
-                if p.get("product_id") == product_id:
-                    return int(p["book_info"]["price_increment_x18"])
+            return self._get_product_book_info(
+                product_id, sender_address, subaccount_name
+            )["price_increment_x18"]
         except Exception as e:
             logger.warning("Could not fetch price increment: %s, using default", e)
         return to_x18(0.01)  # fallback: 1 cent increment
