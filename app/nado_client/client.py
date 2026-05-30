@@ -228,7 +228,6 @@ class NadoClient:
 
         price_increment = book_info["price_increment_x18"]
         size_increment = book_info["size_increment"]
-        min_size = book_info["min_size"]
 
         if price_increment <= 0:
             return OrderResult(
@@ -253,11 +252,6 @@ class NadoClient:
                 status="failure",
                 error=f"Order notional is too small for product {product_id}",
             )
-        # if min_size > 0 and amount < min_size:
-        #     return OrderResult(
-        #         status="failure",
-        #         error=f"Order notional is below min size for product {product_id}",
-        #     )
 
         signed_amount = amount if is_buy else -amount
 
@@ -310,7 +304,7 @@ class NadoClient:
 
     def place_batch_orders(
         self,
-        orders: list[dict],  # [{"product_id": 1, "amount": 1000, "is_buy": True}, ...]
+        orders: list[dict],
         sender_address: str,
         subaccount_name: str = "default",
         stop_on_failure: bool = False,
@@ -323,10 +317,16 @@ class NadoClient:
 
         for order in orders:
             product_id = order["product_id"]
-            amount = order["amount"]  # уже в x18
+            notional_usd = order["notional_usd"]
+            is_buy = order["is_buy"]
+
+            if notional_usd <= 0:
+                return OrderResult(
+                    status="failure",
+                    error=f"Order notional must be positive for product {product_id}",
+                )
 
             # Берём top-of-book для каждого продукта
-            is_buy = amount > 0
             orderbook = self._get_market_liquidity(product_id, depth=1)
             bids = orderbook.get("bids", [])
             asks = orderbook.get("asks", [])
@@ -348,10 +348,45 @@ class NadoClient:
                 else mul_x18(raw_price, to_x18(1) - slippage_x18)
             )
 
-            price_increment = self._get_price_increment(
-                product_id, sender_address, subaccount_name
-            )
+            try:
+                book_info = self._get_product_book_info(
+                    product_id, sender_address, subaccount_name
+                )
+            except Exception as e:
+                logger.warning("Could not fetch product book info: %s", e)
+                return OrderResult(
+                    status="failure",
+                    error=f"Could not fetch product metadata for product {product_id}",
+                )
+
+            price_increment = book_info["price_increment_x18"]
+            size_increment = book_info["size_increment"]
+
+            if price_increment <= 0:
+                return OrderResult(
+                    status="failure",
+                    error=f"Invalid price increment for product {product_id}",
+                )
+            if size_increment <= 0:
+                return OrderResult(
+                    status="failure",
+                    error=f"Invalid size increment for product {product_id}",
+                )
+
             final_price = round_x18(market_price, price_increment)
+            amount = self._notional_to_base_amount(
+                notional_usd=notional_usd,
+                price_x18=final_price,
+                size_increment=size_increment,
+            )
+
+            if amount <= 0:
+                return OrderResult(
+                    status="failure",
+                    error=f"Order notional is too small for product {product_id}",
+                )
+
+            signed_amount = amount if is_buy else -amount
 
             sender_bytes32 = subaccount_to_bytes32(sender_address, subaccount_name)
             nonce = gen_order_nonce()
@@ -361,7 +396,7 @@ class NadoClient:
             signature, sender_hex = sign_order(
                 sender_bytes32=sender_bytes32,
                 price_x18=final_price,
-                amount=amount,
+                amount=signed_amount,
                 expiration=expiration,
                 nonce=nonce,
                 appendix=appendix,
@@ -376,13 +411,22 @@ class NadoClient:
                     "order": {
                         "sender": sender_hex,
                         "priceX18": str(final_price),
-                        "amount": str(amount),
+                        "amount": str(signed_amount),
                         "expiration": str(expiration),
                         "nonce": str(nonce),
                         "appendix": str(appendix),
                     },
                     "signature": signature,
                 }
+            )
+            logger.info(
+                "Prepared batch order | product=%s | notional_usd=%s | "
+                "amount=%s | price=%s | size_increment=%s",
+                product_id,
+                notional_usd,
+                signed_amount,
+                final_price,
+                size_increment,
             )
 
         payload = {

@@ -4,9 +4,8 @@ from fastapi import HTTPException, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
-from app.nado_client import NadoClient
-from app.nado_client.utils import to_x18
 from app.models.market_order_create import BatchOrderCreate
+from app.nado_client import NadoClient
 from app.services.match_user_with_linksigner import get_subaccount_and_signer
 
 logger = logging.getLogger(__name__)
@@ -26,7 +25,8 @@ async def place_batch_order(
     orders = [
         {
             "product_id": item.product_id,
-            "amount": to_x18(item.amount) if item.is_buy else -to_x18(item.amount),
+            "notional_usd": item.notional_usd,
+            "is_buy": item.is_buy,
         }
         for item in payload.orders
     ]

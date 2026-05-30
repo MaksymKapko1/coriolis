@@ -16,7 +16,7 @@ class BatchOrderItemCreate(SQLModel):
     product_id: int = Field(
         ..., description="ID of the product this order is for matching with NADO"
     )
-    amount: float = Field(..., description="Amount in tokens")
+    notional_usd: float = Field(..., description="Quote notional amount in USD")
     is_buy: bool = Field(
         ..., description="True stands for Long/Buy, False stands for Short/Sell"
     )
