@@ -8,6 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.db_helper import db_helper
 from app.routers import users_router, orders
+from app.routers.indexes_router import router as indexes_router
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ app = FastAPI(
 
 app.include_router(users_router.router, prefix=settings.api_v1_prefix)
 app.include_router(orders.router, prefix=settings.api_v1_prefix)
+app.include_router(indexes_router, prefix="/api/v1")
 
 origins = [
     "http://localhost:5173",
