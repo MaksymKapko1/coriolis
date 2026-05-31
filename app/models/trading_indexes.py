@@ -27,6 +27,7 @@ class TradingIndexesAsset(TradingIndexesAssetBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     index_id: int = Field(foreign_key="trading_indexes.id", ondelete="CASCADE")
+    weight: float = Field(default=1.0)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
