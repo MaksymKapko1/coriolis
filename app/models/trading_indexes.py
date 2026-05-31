@@ -10,6 +10,7 @@ from sqlmodel import SQLModel, Field, Relationship
 class TradingIndexesAssetBase(SQLModel):
     product_id: int = Field(...)
     symbol: str = Field(..., min_length=1)
+    weight: float = Field(default=1.0)
 
 
 class TradingIndexesAssetCreate(TradingIndexesAssetBase):
@@ -19,6 +20,7 @@ class TradingIndexesAssetCreate(TradingIndexesAssetBase):
 class TradingIndexesAssetResponse(TradingIndexesAssetBase):
     id: int
     index_id: int
+    weight: float
     created_at: datetime
 
 
