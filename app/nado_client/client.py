@@ -117,21 +117,19 @@ class NadoClient:
         size_increment = int(product["book_info"]["size_increment"])
         price_increment = int(product["book_info"]["price_increment_x18"])
 
-        # 2. Closing price с 0.5% spread (как в SDK)
         spread = to_x18(0.005)
-        if current_amount > 0:  # long → закрываем sell по цене чуть ниже
+        if current_amount > 0:
             closing_price = mul_x18(oracle_price, to_x18(1) - spread)
-        else:  # short → закрываем buy по цене чуть выше
+        else:
             closing_price = mul_x18(oracle_price, to_x18(1) + spread)
 
         final_price = round_x18(closing_price, price_increment)
-        closing_amount = -round_x18(current_amount, size_increment)  # инвертируем
+        closing_amount = -round_x18(current_amount, size_increment)
 
-        # 3. Подписываем и отправляем
         sender_bytes32 = subaccount_to_bytes32(sender_address, subaccount_name)
         nonce = gen_order_nonce()
         expiration = get_expiration_timestamp(1000)
-        appendix = build_appendix(OrderType.FOK, reduce_only=True)  # ← reduce_only!
+        appendix = build_appendix(OrderType.FOK, reduce_only=True)
 
         signature, sender_hex_signed = sign_order(
             sender_bytes32=sender_bytes32,
@@ -314,6 +312,7 @@ class NadoClient:
         )
 
         return self._execute(payload)
+
     def place_market_order(
         self,
         product_id: int,
