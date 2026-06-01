@@ -171,9 +171,149 @@ class NadoClient:
 
         return self._execute(payload)
 
-    def place_limit_order(self,
-                          ):
+    def place_limit_order(
+        self,
+        product_id: int,
+        price_usd: float,
+        notional_usd: float,
+        is_buy: bool,
+        sender_address: str,
+        subaccount_name: str = "default",
+        order_type: OrderType = OrderType.DEFAULT,
+    ) -> OrderResult:
+        """
+        Place a limit order at a specific price.
 
+        Args:
+            price_usd:     Desired limit price in USD.
+            notional_usd:  Quote amount in USD
+            order_type:    DEFAULT = GTC
+        """
+        if notional_usd <= 0 or price_usd <= 0:
+            return OrderResult(
+                status="failure", error="Price and notional must be positive"
+            )
+
+        try:
+            book_info = self._get_product_book_info(
+                product_id, sender_address, subaccount_name
+            )
+        except Exception as e:
+            return OrderResult(
+                status="failure", error=f"Could not fetch product metadata: {e}"
+            )
+
+        price_increment = book_info["price_increment_x18"]
+        size_increment = book_info["size_increment"]
+
+        raw_price_x18 = to_x18(price_usd)
+        final_price = round_x18(raw_price_x18, price_increment)
+
+        amount = self._notional_to_base_amount(
+            notional_usd=notional_usd,
+            price_x18=final_price,
+            size_increment=size_increment,
+        )
+
+        if amount <= 0:
+            return OrderResult(
+                status="failure", error="Notional too small for this product"
+            )
+
+        signed_amount = amount if is_buy else -amount
+
+        sender_bytes32 = subaccount_to_bytes32(sender_address, subaccount_name)
+        nonce = gen_order_nonce()
+        expiration = get_expiration_timestamp(
+            40 if order_type == OrderType.DEFAULT else 1000  # GTC живёт 40с для теста
+        )
+        appendix = build_appendix(order_type)
+
+        signature, sender_hex = sign_order(
+            sender_bytes32=sender_bytes32,
+            price_x18=final_price,
+            amount=signed_amount,
+            expiration=expiration,
+            nonce=nonce,
+            appendix=appendix,
+            product_id=product_id,
+            chain_id=self.chain_id,
+            private_key=self.private_key,
+        )
+
+        payload = {
+            "place_order": {
+                "product_id": product_id,
+                "order": {
+                    "sender": sender_hex,
+                    "priceX18": str(final_price),
+                    "amount": str(signed_amount),
+                    "expiration": str(expiration),
+                    "nonce": str(nonce),
+                    "appendix": str(appendix),
+                },
+                "signature": signature,
+            }
+        }
+
+        logger.info(
+            "Placing limit order | product=%s | price=%s | notional=%s | side=%s | sender=%s",
+            product_id,
+            price_usd,
+            notional_usd,
+            "buy" if is_buy else "sell",
+            sender_hex,
+        )
+
+        return self._execute(payload)
+
+    def cancel_orders(
+        self,
+        product_ids: list[int],
+        digests: list[str],
+        sender_address: str,
+        subaccount_name: str = "default",
+    ) -> OrderResult:
+        """
+        Cancel specific orders by their digests.
+
+        Args:
+            product_ids:  List of product IDs for orders to cancel.
+            digests:      List of order digests (returned when order was placed).
+        """
+        from app.nado_client.signing import sign_cancel_orders
+
+        sender_bytes32 = subaccount_to_bytes32(sender_address, subaccount_name)
+        nonce = gen_order_nonce()
+
+        signature, sender_hex = sign_cancel_orders(
+            sender_bytes32=sender_bytes32,
+            product_ids=product_ids,
+            digests=digests,
+            nonce=nonce,
+            chain_id=self.chain_id,
+            endpoint_addr=self.endpoint_addr,
+            private_key=self.private_key,
+        )
+
+        payload = {
+            "cancel_orders": {
+                "sender": sender_hex,
+                "productIds": product_ids,
+                "digests": digests,
+                "nonce": str(nonce),
+                "signature": signature,
+            }
+        }
+
+        logger.info(
+            "Cancelling orders | products=%s | digests=%s | sender=%s",
+            product_ids,
+            digests,
+            sender_hex,
+        )
+
+        return self._execute(payload)
     def place_market_order(
         self,
         product_id: int,

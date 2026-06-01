@@ -94,3 +94,41 @@ def sign_order(
     signed = account.sign_message(encoded)
 
     return signed.signature.hex(), sender_hex
+
+
+def sign_cancel_orders(
+    sender_bytes32: bytes,
+    product_ids: list[int],
+    digests: list[str],
+    nonce: int,
+    chain_id: int,
+    endpoint_addr: str,
+    private_key: str,
+) -> tuple[str, str]:
+    """Sign a cancel orders request using endpoint_addr as verifying contract."""
+    from app.nado_client.utils import bytes32_to_hex, hex_to_bytes32
+
+    sender_hex = bytes32_to_hex(sender_bytes32)
+    digests_bytes = [hex_to_bytes32(d) for d in digests]
+
+    typed_data = {
+        "types": CANCEL_ORDERS_EIP712_TYPES,
+        "primaryType": "Cancellation",
+        "domain": {
+            "name": "Nado",
+            "version": "0.0.1",
+            "chainId": chain_id,
+            "verifyingContract": endpoint_addr,
+        },
+        "message": {
+            "sender": sender_bytes32,
+            "productIds": product_ids,
+            "digests": digests_bytes,
+            "nonce": nonce,
+        },
+    }
+
+    encoded = encode_structured_data(typed_data)
+    account = Account.from_key(private_key)
+    signed = account.sign_message(encoded)
+    return signed.signature.hex(), sender_hex
