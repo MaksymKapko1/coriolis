@@ -24,6 +24,21 @@ ORDER_EIP712_TYPES = {
     ],
 }
 
+CANCEL_ORDERS_EIP712_TYPES = {
+    "EIP712Domain": [
+        {"name": "name", "type": "string"},
+        {"name": "version", "type": "string"},
+        {"name": "chainId", "type": "uint256"},
+        {"name": "verifyingContract", "type": "address"},
+    ],
+    "Cancellation": [
+        {"name": "sender", "type": "bytes32"},
+        {"name": "productIds", "type": "uint32[]"},
+        {"name": "digests", "type": "bytes32[]"},
+        {"name": "nonce", "type": "uint64"},
+    ],
+}
+
 
 def sign_order(
     sender_bytes32: bytes,

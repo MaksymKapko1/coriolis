@@ -171,6 +171,9 @@ class NadoClient:
 
         return self._execute(payload)
 
+    def place_limit_order(self,
+                          ):
+
     def place_market_order(
         self,
         product_id: int,

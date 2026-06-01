@@ -8,5 +8,12 @@
       <jdbc-url>jdbc:postgresql://localhost:5432/coriolis_db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="coriolis_db@localhost [2]" uuid="a175ed70-d8fd-451d-88a2-b3efc595d2b3">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://localhost:5434/coriolis_db</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

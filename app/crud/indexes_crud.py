@@ -2,7 +2,11 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.models.trading_indexes import TradingIndexes, TradingIndexesAsset, TradingIndexesCreate
+from app.models.trading_indexes import (
+    TradingIndexes,
+    TradingIndexesAsset,
+    TradingIndexesCreate,
+)
 
 
 def _with_assets():
@@ -10,25 +14,33 @@ def _with_assets():
 
 
 async def get_user_indexes(session: AsyncSession, user_id) -> list[TradingIndexes]:
-    stmt = select(TradingIndexes).where(
-        TradingIndexes.user_id == user_id
-    ).options(_with_assets())
+    stmt = (
+        select(TradingIndexes)
+        .where(TradingIndexes.user_id == user_id)
+        .options(_with_assets())
+    )
     result = await session.exec(stmt)
     return result.all()
 
 
 async def get_default_indexes(session: AsyncSession) -> list[TradingIndexes]:
-    stmt = select(TradingIndexes).where(
-        TradingIndexes.is_system == True
-    ).options(_with_assets())
+    stmt = (
+        select(TradingIndexes)
+        .where(TradingIndexes.is_system == True)
+        .options(_with_assets())
+    )
     result = await session.exec(stmt)
     return result.all()
 
 
-async def get_index_by_id(session: AsyncSession, index_id: int) -> TradingIndexes | None:
-    stmt = select(TradingIndexes).where(
-        TradingIndexes.id == index_id
-    ).options(_with_assets())
+async def get_index_by_id(
+    session: AsyncSession, index_id: int
+) -> TradingIndexes | None:
+    stmt = (
+        select(TradingIndexes)
+        .where(TradingIndexes.id == index_id)
+        .options(_with_assets())
+    )
     result = await session.exec(stmt)
     return result.one_or_none()
 
@@ -53,9 +65,11 @@ async def create_index(
 
     await session.commit()
 
-    stmt = select(TradingIndexes).where(
-        TradingIndexes.id == db_index.id
-    ).options(_with_assets())
+    stmt = (
+        select(TradingIndexes)
+        .where(TradingIndexes.id == db_index.id)
+        .options(_with_assets())
+    )
     result = await session.exec(stmt)
     return result.one()
 
@@ -84,9 +98,11 @@ async def update_index(
 
     await session.commit()
 
-    stmt = select(TradingIndexes).where(
-        TradingIndexes.id == db_index.id
-    ).options(_with_assets())
+    stmt = (
+        select(TradingIndexes)
+        .where(TradingIndexes.id == db_index.id)
+        .options(_with_assets())
+    )
     result = await session.exec(stmt)
     return result.one()
 
