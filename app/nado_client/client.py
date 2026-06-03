@@ -90,10 +90,8 @@ class NadoClient:
         """
         sender_hex = subaccount_to_hex(sender_address, subaccount_name)
 
-        # 1. Получаем текущую позицию
         subaccount_info = self._query("subaccount_info", {"subaccount": sender_hex})
 
-        # Ищем баланс и продукт по product_id
         all_balances = subaccount_info.get("spot_balances", []) + subaccount_info.get(
             "perp_balances", []
         )
