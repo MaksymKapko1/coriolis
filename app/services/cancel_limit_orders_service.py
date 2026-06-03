@@ -5,6 +5,7 @@ from starlette import status
 from starlette.exceptions import HTTPException
 
 from app.core.config import settings
+from app.crud.limit_orders_crud import mark_orders_cancelled
 from app.models.limit_orders_models import LimitOrderCancel
 from app.nado_client import NadoClient
 from app.services.match_user_with_linksigner import get_subaccount_and_signer
@@ -32,5 +33,7 @@ async def cancel_limit_orders_service(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Order rejected by exchange: {result.error}",
         )
+
+    await mark_orders_cancelled(session, payload.digests)
 
     return {"status": result.status, "data": result.data}
