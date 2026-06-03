@@ -1,4 +1,39 @@
+from datetime import datetime, UTC
+from typing import Optional
+from uuid import UUID
+
 from sqlmodel import Field, SQLModel
+
+
+class LimitOrder(SQLModel):
+    __tablename__ = "limit_orders"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: UUID = Field(foreign_key="users.id", index=True)
+
+    product_id: int = Field(...)
+    symbol: str = Field(...)
+    digest: str = Field(..., unique=True, index=True)
+
+    price_usd: float = Field(...)
+    notional_usd: float = Field(...)
+    is_buy: bool = Field(...)
+
+    status: str = Field(default="open")  # open | cancelled | filled
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
+
+class LimitOrderResponse(SQLModel):
+    id: int
+    product_id: int
+    symbol: str
+    digest: str
+    price_usd: float
+    notional_usd: float
+    is_buy: bool
+    status: str
+    created_at: datetime
 
 
 class LimitOrderCreate(SQLModel):
