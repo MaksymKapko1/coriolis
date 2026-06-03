@@ -5,6 +5,7 @@ from starlette import status
 from starlette.exceptions import HTTPException
 
 from app.core.config import settings
+from app.crud.limit_orders_crud import save_limit_order
 from app.models.limit_orders_models import LimitOrderCreate
 from app.nado_client import NadoClient
 from app.services.match_user_with_linksigner import get_subaccount_and_signer
@@ -47,4 +48,16 @@ async def place_limit_order_service(
             detail=f"Order rejected by exchange: {result.error}",
         )
 
+    digest = result.data.get("digest") if result.data else None
+    if digest:
+        await save_limit_order(
+            session=session,
+            user_id=payload.user_id,
+            product_id=payload.product_id,
+            symbol=str(payload.product_id),
+            digest=digest,
+            price_usd=payload.price_usd,
+            notional_usd=payload.notional_usd,
+            is_buy=payload.is_buy,
+        )
     return {"status": result.status, "data": result.data}
