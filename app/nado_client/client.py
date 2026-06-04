@@ -30,11 +30,13 @@ logger = logging.getLogger(__name__)
 NETWORK_CONFIGS = {
     "testnet": {
         "gateway_url": "https://gateway.test.nado.xyz/v1",
+        "trigger_url": "https://trigger.test.nado.xyz/v1",
         "chain_id": 763373,
         "endpoint_addr": "0x698D87105274292B5673367DEC81874Ce3633Ac2",
     },
     "mainnet": {
         "gateway_url": "https://gateway.prod.nado.xyz/v1",
+        "trigger_url": "https://trigger.prod.nado.xyz/v1",
         "chain_id": 57073,
         "endpoint_addr": "0x05ec92D78ED421f3D3Ada77FFdE167106565974E",
     },
@@ -68,11 +70,13 @@ class NadoClient:
             raise ValueError(f"Unknown network: {network}. Use 'testnet' or 'mainnet'.")
 
         self.gateway_url = config["gateway_url"]
+        self.trigger_url = config["trigger_url"]
         self.chain_id = config["chain_id"]
         self.endpoint_addr = config["endpoint_addr"]
         self.private_key = private_key
         self.session = requests.Session()
         self.session.headers.update({"Accept-Encoding": "gzip"})
+        self.trigger_url = config["trigger_url"]
 
     # ------------------------------------------------------------------
     # Public API
@@ -586,6 +590,119 @@ class NadoClient:
             "Placing batch of %s orders | sender=%s", len(signed_orders), sender_address
         )
         return self._execute(payload)
+
+    def place_trigger_order(
+        self,
+        product_id: int,
+        price_usd: float,
+        notional_usd: float,
+        is_buy: bool,
+        trigger_price_usd: float,
+        trigger_type: str,  # "last_price_above" | "last_price_below" | "oracle_price_above" | "oracle_price_below"
+        sender_address: str,
+        subaccount_name: str = "default",
+        reduce_only: bool = True,
+        dependency_digest: str | None = None,
+    ) -> OrderResult:
+        """
+        Place a TP or SL trigger order.
+        trigger_type examples:
+            TP long  → "last_price_above"   (sell when price goes up)
+            SL long  → "last_price_below"   (sell when price drops)
+            TP short → "last_price_below"   (buy  when price drops)
+            SL short → "last_price_above"   (buy  when price rises)
+        """
+        if notional_usd <= 0 or price_usd <= 0 or trigger_price_usd <= 0:
+            return OrderResult(
+                status="failure", error="All prices and notional must be positive"
+            )
+
+        try:
+            book_info = self._get_product_book_info(
+                product_id, sender_address, subaccount_name
+            )
+        except Exception as e:
+            return OrderResult(
+                status="failure", error=f"Could not fetch product metadata: {e}"
+            )
+
+        price_increment = book_info["price_increment_x18"]
+        size_increment = book_info["size_increment"]
+
+        raw_price_x18 = to_x18(price_usd)
+        final_price = round_x18(raw_price_x18, price_increment)
+
+        amount = self._notional_to_base_amount(
+            notional_usd=notional_usd,
+            price_x18=final_price,
+            size_increment=size_increment,
+        )
+        if amount <= 0:
+            return OrderResult(status="failure", error="Notional too small")
+
+        signed_amount = amount if is_buy else -amount
+
+        sender_bytes32 = subaccount_to_bytes32(sender_address, subaccount_name)
+        nonce = gen_order_nonce()
+        expiration = get_expiration_timestamp(60 * 60 * 24 * 7)  # 7 дней
+        appendix = build_appendix(OrderType.DEFAULT, reduce_only=reduce_only)
+
+        signature, sender_hex = sign_order(
+            sender_bytes32=sender_bytes32,
+            price_x18=final_price,
+            amount=signed_amount,
+            expiration=expiration,
+            nonce=nonce,
+            appendix=appendix,
+            product_id=product_id,
+            chain_id=self.chain_id,
+            private_key=self.private_key,
+        )
+
+        trigger_price_x18 = to_x18(trigger_price_usd)
+        price_requirement = {trigger_type: str(trigger_price_x18)}
+
+        price_trigger: dict = {"price_requirement": price_requirement}
+        if dependency_digest:
+            price_trigger["dependency"] = {
+                "digest": dependency_digest,
+                "on_partial_fill": False,
+            }
+
+        payload = {
+            "place_order": {
+                "product_id": product_id,
+                "order": {
+                    "sender": sender_hex,
+                    "priceX18": str(final_price),
+                    "amount": str(signed_amount),
+                    "expiration": str(expiration),
+                    "nonce": str(nonce),
+                    "appendix": str(appendix),
+                },
+                "trigger": {"price_trigger": price_trigger},  # ← единственное отличие
+                "signature": signature,
+            }
+        }
+
+        logger.info(
+            "Placing trigger order | product=%s | trigger_type=%s | trigger_price=%s | sender=%s",
+            product_id,
+            trigger_type,
+            trigger_price_usd,
+            sender_hex,
+        )
+
+        resp = self.session.post(f"{self.trigger_url}/execute", json=payload)
+        if resp.status_code != 200:
+            return OrderResult(status="failure", error=resp.text)
+        data = resp.json()
+        return OrderResult(
+            status=data.get("status", "failure"),
+            data=data.get("data"),
+            error=data.get("error"),
+            error_code=data.get("error_code"),
+        )
 
     # ------------------------------------------------------------------
     # Internal HTTP helpers
