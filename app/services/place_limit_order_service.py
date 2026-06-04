@@ -62,4 +62,42 @@ async def place_limit_order_service(
             notional_usd=payload.notional_usd,
             is_buy=payload.is_buy,
         )
+
+        # ── TP ──────────────────────────────────────────────────────────────
+        if payload.take_profit_price:
+            tp_result = client.place_trigger_order(
+                product_id=payload.product_id,
+                price_usd=payload.take_profit_price,
+                notional_usd=payload.notional_usd,
+                is_buy=not payload.is_buy,  # закрываем в противоположную сторону
+                trigger_price_usd=payload.take_profit_price,
+                trigger_type=(
+                    "last_price_above" if payload.is_buy else "last_price_below"
+                ),
+                sender_address=main_wallet,
+                reduce_only=True,
+            )
+            if tp_result.status != "success":
+                logger.warning("TP placement failed | error=%s", tp_result.error)
+            else:
+                logger.info("TP placed | digest=%s", tp_result.data)
+
+        if payload.stop_loss_price:
+            sl_result = client.place_trigger_order(
+                product_id=payload.product_id,
+                price_usd=payload.stop_loss_price,
+                notional_usd=payload.notional_usd,
+                is_buy=not payload.is_buy,
+                trigger_price_usd=payload.stop_loss_price,
+                trigger_type=(
+                    "last_price_below" if payload.is_buy else "last_price_above"
+                ),
+                sender_address=main_wallet,
+                reduce_only=True,
+            )
+            if sl_result.status != "success":
+                logger.warning("SL placement failed | error=%s", sl_result.error)
+            else:
+                logger.info("SL placed | digest=%s", sl_result.data)
+
     return {"status": result.status, "data": result.data}
