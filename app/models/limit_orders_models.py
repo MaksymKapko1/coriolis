@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlmodel import Field, SQLModel
 
 
-class LimitOrder(SQLModel):
+class LimitOrder(SQLModel, table=True):
     __tablename__ = "limit_orders"
 
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -23,6 +23,7 @@ class LimitOrder(SQLModel):
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
+
 
 class LimitOrderResponse(SQLModel):
     id: int

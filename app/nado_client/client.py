@@ -177,14 +177,6 @@ class NadoClient:
         subaccount_name: str = "default",
         order_type: OrderType = OrderType.DEFAULT,
     ) -> OrderResult:
-        """
-        Place a limit order at a specific price.
-
-        Args:
-            price_usd:     Desired limit price in USD.
-            notional_usd:  Quote amount in USD
-            order_type:    DEFAULT = GTC
-        """
         if notional_usd <= 0 or price_usd <= 0:
             return OrderResult(
                 status="failure", error="Price and notional must be positive"
@@ -201,6 +193,7 @@ class NadoClient:
 
         price_increment = book_info["price_increment_x18"]
         size_increment = book_info["size_increment"]
+        min_size = book_info.get("min_size", 0)  # Достаем min_size
 
         raw_price_x18 = to_x18(price_usd)
         final_price = round_x18(raw_price_x18, price_increment)
@@ -211,9 +204,29 @@ class NadoClient:
             size_increment=size_increment,
         )
 
+        # --- ЖЕСТКИЙ PRINT ДЛЯ ОТЛАДКИ ---
+        print("\n" + "=" * 50)
+        print("!!! LIMIT ORDER DEBUG INFO !!!")
+        print(f"Product ID: {product_id}")
+        print(f"Input Notional: ${notional_usd}")
+        print(f"Input Price: ${price_usd}")
+        print(f"Price x18: {final_price}")
+        print(f"Size Increment: {size_increment}")
+        print(f"Min Size: {min_size}")
+        print(f"Calculated Amount (Base Asset): {amount}")
+        print("=" * 50 + "\n")
+
         if amount <= 0:
             return OrderResult(
-                status="failure", error="Notional too small for this product"
+                status="failure",
+                error=f"Calculated amount is 0. Notional too small or rounded to zero by size_increment ({size_increment})",
+            )
+
+        if min_size > 0 and amount < min_size:
+            logger.warning(
+                "Amount (%s) < Min Size (%s). Sending to Nado anyway to test backend enforcement.",
+                amount,
+                min_size,
             )
 
         signed_amount = amount if is_buy else -amount
@@ -221,7 +234,7 @@ class NadoClient:
         sender_bytes32 = subaccount_to_bytes32(sender_address, subaccount_name)
         nonce = gen_order_nonce()
         expiration = get_expiration_timestamp(
-            40 if order_type == OrderType.DEFAULT else 1000  # GTC живёт 40с для теста
+            604800 if order_type == OrderType.DEFAULT else 1000
         )
         appendix = build_appendix(order_type)
 
@@ -251,15 +264,6 @@ class NadoClient:
                 "signature": signature,
             }
         }
-
-        logger.info(
-            "Placing limit order | product=%s | price=%s | notional=%s | side=%s | sender=%s",
-            product_id,
-            price_usd,
-            notional_usd,
-            "buy" if is_buy else "sell",
-            sender_hex,
-        )
 
         return self._execute(payload)
 
@@ -294,10 +298,12 @@ class NadoClient:
 
         payload = {
             "cancel_orders": {
-                "sender": sender_hex,
-                "productIds": product_ids,
-                "digests": digests,
-                "nonce": str(nonce),
+                "tx": {
+                    "sender": sender_hex.lower(),
+                    "productIds": product_ids,
+                    "digests": [d.lower() for d in digests],
+                    "nonce": str(nonce),
+                },
                 "signature": signature,
             }
         }

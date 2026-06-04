@@ -128,7 +128,7 @@ def sign_cancel_orders(
         },
     }
 
-    encoded = encode_structured_data(typed_data)
+    encoded = encode_typed_data(full_message=typed_data)
     account = Account.from_key(private_key)
     signed = account.sign_message(encoded)
     return signed.signature.hex(), sender_hex

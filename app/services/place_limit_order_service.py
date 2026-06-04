@@ -1,4 +1,5 @@
 import logging
+from uuid import UUID
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette import status
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 async def place_limit_order_service(
     payload: LimitOrderCreate,
     main_wallet: str,
+    user_id: UUID,
     session: AsyncSession,
 ) -> dict:
     linked_signer_address, private_key = await get_subaccount_and_signer(
@@ -52,7 +54,7 @@ async def place_limit_order_service(
     if digest:
         await save_limit_order(
             session=session,
-            user_id=payload.user_id,
+            user_id=user_id,
             product_id=payload.product_id,
             symbol=str(payload.product_id),
             digest=digest,

@@ -3,15 +3,7 @@
   <database-model serializer="dbm" dbms="POSTGRES" family-id="POSTGRES" format-version="4.54">
     <root id="1">
       <DateStyle>mdy</DateStyle>
-      <Grants>1||-9223372036854775808|c|G
-1||10|c|G
-1||10|C|G
-1||10|T|G
-4||-9223372036854775808|c|G
-4||10|c|G
-4||10|C|G
-4||10|T|G</Grants>
-      <IntrospectionStateNumber>763</IntrospectionStateNumber>
+      <IntrospectionStateNumber>789</IntrospectionStateNumber>
       <ServerVersion>15.18</ServerVersion>
       <StartupTime>1780133078</StartupTime>
       <TimeZones>true ACDT
@@ -707,7 +699,7 @@ true posixrules
 13270||10|C|G
 13270||-9223372036854775808|U|G
 13270||10|U|G</Grants>
-      <IntrospectionStateNumber>763</IntrospectionStateNumber>
+      <IntrospectionStateNumber>789</IntrospectionStateNumber>
       <ObjectId>16384</ObjectId>
       <OwnerName>postgres</OwnerName>
     </database>
@@ -4126,81 +4118,359 @@ true posixrules
       <AutoIntrospectionLevel>3</AutoIntrospectionLevel>
       <Comment>standard public schema</Comment>
       <Current>1</Current>
-      <LastIntrospectionL1Xid>763</LastIntrospectionL1Xid>
-      <LastIntrospectionL2Xid>763</LastIntrospectionL2Xid>
-      <LastIntrospectionL3Xid>763</LastIntrospectionL3Xid>
+      <LastIntrospectionL1Xid>789</LastIntrospectionL1Xid>
+      <LastIntrospectionL2Xid>789</LastIntrospectionL2Xid>
+      <LastIntrospectionL3Xid>789</LastIntrospectionL3Xid>
       <LastIntrospectionLevel>3</LastIntrospectionLevel>
-      <LastIntrospectionLocalTimestamp>2026-05-31.18:24:47</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2026-06-03.14:27:10</LastIntrospectionLocalTimestamp>
       <ObjectId>2200</ObjectId>
       <StateNumber>518</StateNumber>
       <OwnerName>pg_database_owner</OwnerName>
     </schema>
-    <sequence id="263" parent="262" name="trading_index_assets_id_seq">
+    <sequence id="263" parent="262" name="limit_orders_id_seq">
       <DetailsLevel>2</DetailsLevel>
-      <ObjectId>16433</ObjectId>
+      <ObjectId>16473</ObjectId>
       <SequenceIdentity>1</SequenceIdentity>
       <StartValue>1</StartValue>
-      <StateNumber>760</StateNumber>
+      <StateNumber>784</StateNumber>
       <StoredType>integer|0s</StoredType>
       <OwnerName>postgres</OwnerName>
     </sequence>
-    <sequence id="264" parent="262" name="trading_indexes_id_seq">
+    <sequence id="264" parent="262" name="trading_index_assets_id_seq">
       <DetailsLevel>2</DetailsLevel>
-      <ObjectId>16421</ObjectId>
+      <ObjectId>16459</ObjectId>
       <SequenceIdentity>1</SequenceIdentity>
       <StartValue>1</StartValue>
-      <StateNumber>760</StateNumber>
+      <StateNumber>773</StateNumber>
       <StoredType>integer|0s</StoredType>
       <OwnerName>postgres</OwnerName>
     </sequence>
-    <table id="265" parent="262" name="users">
+    <sequence id="265" parent="262" name="trading_indexes_id_seq">
+      <DetailsLevel>2</DetailsLevel>
+      <ObjectId>16447</ObjectId>
+      <SequenceIdentity>1</SequenceIdentity>
+      <StartValue>1</StartValue>
+      <StateNumber>773</StateNumber>
+      <StoredType>integer|0s</StoredType>
+      <OwnerName>postgres</OwnerName>
+    </sequence>
+    <table id="266" parent="262" name="limit_orders">
+      <DetailsLevel>2</DetailsLevel>
+      <ObjectId>16474</ObjectId>
+      <StateNumber>784</StateNumber>
+      <AccessMethodId>2</AccessMethodId>
+      <OwnerName>postgres</OwnerName>
+    </table>
+    <table id="267" parent="262" name="trading_index_assets">
+      <DetailsLevel>2</DetailsLevel>
+      <ObjectId>16460</ObjectId>
+      <StateNumber>773</StateNumber>
+      <AccessMethodId>2</AccessMethodId>
+      <OwnerName>postgres</OwnerName>
+    </table>
+    <table id="268" parent="262" name="trading_indexes">
+      <DetailsLevel>2</DetailsLevel>
+      <ObjectId>16448</ObjectId>
+      <StateNumber>773</StateNumber>
+      <AccessMethodId>2</AccessMethodId>
+      <OwnerName>postgres</OwnerName>
+    </table>
+    <table id="269" parent="262" name="users">
       <DetailsLevel>2</DetailsLevel>
       <ObjectId>16413</ObjectId>
       <StateNumber>760</StateNumber>
       <AccessMethodId>2</AccessMethodId>
       <OwnerName>postgres</OwnerName>
     </table>
-    <column id="266" parent="265" name="address">
+    <column id="270" parent="266" name="id">
+      <DefaultExpression>nextval(&apos;limit_orders_id_seq&apos;::regclass)</DefaultExpression>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <StateNumber>784</StateNumber>
+      <StoredType>integer|0s</StoredType>
+      <SequenceId>16473</SequenceId>
+      <TypeId>23</TypeId>
+    </column>
+    <column id="271" parent="266" name="user_id">
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StateNumber>784</StateNumber>
+      <StoredType>uuid|0s</StoredType>
+      <TypeId>2950</TypeId>
+    </column>
+    <column id="272" parent="266" name="product_id">
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+      <StateNumber>784</StateNumber>
+      <StoredType>integer|0s</StoredType>
+      <TypeId>23</TypeId>
+    </column>
+    <column id="273" parent="266" name="symbol">
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+      <StateNumber>784</StateNumber>
+      <StoredType>varchar|0s</StoredType>
+      <TypeId>1043</TypeId>
+    </column>
+    <column id="274" parent="266" name="digest">
+      <NotNull>1</NotNull>
+      <Position>5</Position>
+      <StateNumber>784</StateNumber>
+      <StoredType>varchar|0s</StoredType>
+      <TypeId>1043</TypeId>
+    </column>
+    <column id="275" parent="266" name="price_usd">
+      <NotNull>1</NotNull>
+      <Position>6</Position>
+      <StateNumber>784</StateNumber>
+      <StoredType>double precision|0s</StoredType>
+      <TypeId>701</TypeId>
+    </column>
+    <column id="276" parent="266" name="notional_usd">
+      <NotNull>1</NotNull>
+      <Position>7</Position>
+      <StateNumber>784</StateNumber>
+      <StoredType>double precision|0s</StoredType>
+      <TypeId>701</TypeId>
+    </column>
+    <column id="277" parent="266" name="is_buy">
+      <NotNull>1</NotNull>
+      <Position>8</Position>
+      <StateNumber>784</StateNumber>
+      <StoredType>boolean|0s</StoredType>
+      <TypeId>16</TypeId>
+    </column>
+    <column id="278" parent="266" name="status">
+      <NotNull>1</NotNull>
+      <Position>9</Position>
+      <StateNumber>784</StateNumber>
+      <StoredType>varchar|0s</StoredType>
+      <TypeId>1043</TypeId>
+    </column>
+    <column id="279" parent="266" name="created_at">
+      <NotNull>1</NotNull>
+      <Position>10</Position>
+      <StateNumber>784</StateNumber>
+      <StoredType>timestamp|0s</StoredType>
+      <TypeId>1114</TypeId>
+    </column>
+    <foreign-key id="280" parent="266" name="limit_orders_user_id_fkey">
+      <ColNames>user_id</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <ObjectId>16482</ObjectId>
+      <StateNumber>784</StateNumber>
+      <RefKeyColPositions>4</RefKeyColPositions>
+      <RefTableId>16413</RefTableId>
+    </foreign-key>
+    <index id="281" parent="266" name="limit_orders_pkey">
+      <ColNames>id</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <ObjectId>16480</ObjectId>
+      <Primary>1</Primary>
+      <StateNumber>784</StateNumber>
+      <Unique>1</Unique>
+      <AccessMethodId>403</AccessMethodId>
+    </index>
+    <index id="282" parent="266" name="ix_limit_orders_digest">
+      <ColNames>digest</ColNames>
+      <ObjectId>16487</ObjectId>
+      <StateNumber>784</StateNumber>
+      <Unique>1</Unique>
+      <AccessMethodId>403</AccessMethodId>
+      <CollationNames>default</CollationNames>
+      <CollationIds>100</CollationIds>
+      <CollationParentNames>pg_catalog</CollationParentNames>
+    </index>
+    <index id="283" parent="266" name="ix_limit_orders_user_id">
+      <ColNames>user_id</ColNames>
+      <ObjectId>16488</ObjectId>
+      <StateNumber>784</StateNumber>
+      <AccessMethodId>403</AccessMethodId>
+    </index>
+    <key id="284" parent="266" name="limit_orders_pkey">
+      <NameSurrogate>1</NameSurrogate>
+      <ObjectId>16481</ObjectId>
+      <Primary>1</Primary>
+      <StateNumber>784</StateNumber>
+      <UnderlyingIndexId>16480</UnderlyingIndexId>
+    </key>
+    <column id="285" parent="267" name="product_id">
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <StateNumber>773</StateNumber>
+      <StoredType>integer|0s</StoredType>
+      <TypeId>23</TypeId>
+    </column>
+    <column id="286" parent="267" name="symbol">
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StateNumber>773</StateNumber>
+      <StoredType>varchar|0s</StoredType>
+      <TypeId>1043</TypeId>
+    </column>
+    <column id="287" parent="267" name="id">
+      <DefaultExpression>nextval(&apos;trading_index_assets_id_seq&apos;::regclass)</DefaultExpression>
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+      <StateNumber>773</StateNumber>
+      <StoredType>integer|0s</StoredType>
+      <SequenceId>16459</SequenceId>
+      <TypeId>23</TypeId>
+    </column>
+    <column id="288" parent="267" name="index_id">
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+      <StateNumber>773</StateNumber>
+      <StoredType>integer|0s</StoredType>
+      <TypeId>23</TypeId>
+    </column>
+    <column id="289" parent="267" name="weight">
+      <NotNull>1</NotNull>
+      <Position>5</Position>
+      <StateNumber>773</StateNumber>
+      <StoredType>double precision|0s</StoredType>
+      <TypeId>701</TypeId>
+    </column>
+    <column id="290" parent="267" name="created_at">
+      <NotNull>1</NotNull>
+      <Position>6</Position>
+      <StateNumber>773</StateNumber>
+      <StoredType>timestamp|0s</StoredType>
+      <TypeId>1114</TypeId>
+    </column>
+    <foreign-key id="291" parent="267" name="trading_index_assets_index_id_fkey">
+      <ColNames>index_id</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <ObjectId>16468</ObjectId>
+      <OnDelete>cascade</OnDelete>
+      <StateNumber>773</StateNumber>
+      <RefKeyColPositions>2</RefKeyColPositions>
+      <RefTableId>16448</RefTableId>
+    </foreign-key>
+    <index id="292" parent="267" name="trading_index_assets_pkey">
+      <ColNames>id</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <ObjectId>16466</ObjectId>
+      <Primary>1</Primary>
+      <StateNumber>773</StateNumber>
+      <Unique>1</Unique>
+      <AccessMethodId>403</AccessMethodId>
+    </index>
+    <key id="293" parent="267" name="trading_index_assets_pkey">
+      <NameSurrogate>1</NameSurrogate>
+      <ObjectId>16467</ObjectId>
+      <Primary>1</Primary>
+      <StateNumber>773</StateNumber>
+      <UnderlyingIndexId>16466</UnderlyingIndexId>
+    </key>
+    <column id="294" parent="268" name="name">
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <StateNumber>773</StateNumber>
+      <StoredType>varchar(100)|0s</StoredType>
+      <TypeId>1043</TypeId>
+    </column>
+    <column id="295" parent="268" name="id">
+      <DefaultExpression>nextval(&apos;trading_indexes_id_seq&apos;::regclass)</DefaultExpression>
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StateNumber>773</StateNumber>
+      <StoredType>integer|0s</StoredType>
+      <SequenceId>16447</SequenceId>
+      <TypeId>23</TypeId>
+    </column>
+    <column id="296" parent="268" name="user_id">
+      <Position>3</Position>
+      <StateNumber>773</StateNumber>
+      <StoredType>uuid|0s</StoredType>
+      <TypeId>2950</TypeId>
+    </column>
+    <column id="297" parent="268" name="is_system">
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+      <StateNumber>773</StateNumber>
+      <StoredType>boolean|0s</StoredType>
+      <TypeId>16</TypeId>
+    </column>
+    <column id="298" parent="268" name="created_at">
+      <NotNull>1</NotNull>
+      <Position>5</Position>
+      <StateNumber>773</StateNumber>
+      <StoredType>timestamp|0s</StoredType>
+      <TypeId>1114</TypeId>
+    </column>
+    <column id="299" parent="268" name="updated_at">
+      <NotNull>1</NotNull>
+      <Position>6</Position>
+      <StateNumber>773</StateNumber>
+      <StoredType>timestamp|0s</StoredType>
+      <TypeId>1114</TypeId>
+    </column>
+    <foreign-key id="300" parent="268" name="trading_indexes_user_id_fkey">
+      <ColNames>user_id</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <ObjectId>16454</ObjectId>
+      <StateNumber>773</StateNumber>
+      <RefKeyColPositions>4</RefKeyColPositions>
+      <RefTableId>16413</RefTableId>
+    </foreign-key>
+    <index id="301" parent="268" name="trading_indexes_pkey">
+      <ColNames>id</ColNames>
+      <NameSurrogate>1</NameSurrogate>
+      <ObjectId>16452</ObjectId>
+      <Primary>1</Primary>
+      <StateNumber>773</StateNumber>
+      <Unique>1</Unique>
+      <AccessMethodId>403</AccessMethodId>
+    </index>
+    <key id="302" parent="268" name="trading_indexes_pkey">
+      <NameSurrogate>1</NameSurrogate>
+      <ObjectId>16453</ObjectId>
+      <Primary>1</Primary>
+      <StateNumber>773</StateNumber>
+      <UnderlyingIndexId>16452</UnderlyingIndexId>
+    </key>
+    <column id="303" parent="269" name="address">
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StateNumber>758</StateNumber>
       <StoredType>varchar|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="267" parent="265" name="linked_signer_address">
+    <column id="304" parent="269" name="linked_signer_address">
       <Position>2</Position>
       <StateNumber>758</StateNumber>
       <StoredType>varchar|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="268" parent="265" name="is_approved">
+    <column id="305" parent="269" name="is_approved">
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StateNumber>758</StateNumber>
       <StoredType>boolean|0s</StoredType>
       <TypeId>16</TypeId>
     </column>
-    <column id="269" parent="265" name="id">
+    <column id="306" parent="269" name="id">
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StateNumber>758</StateNumber>
       <StoredType>uuid|0s</StoredType>
       <TypeId>2950</TypeId>
     </column>
-    <column id="270" parent="265" name="encrypted_linked_signer_key">
+    <column id="307" parent="269" name="encrypted_linked_signer_key">
       <Position>5</Position>
       <StateNumber>758</StateNumber>
       <StoredType>varchar|0s</StoredType>
       <TypeId>1043</TypeId>
     </column>
-    <column id="271" parent="265" name="created_at">
+    <column id="308" parent="269" name="created_at">
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StateNumber>758</StateNumber>
       <StoredType>timestamp|0s</StoredType>
       <TypeId>1114</TypeId>
     </column>
-    <index id="272" parent="265" name="ix_users_address">
+    <index id="309" parent="269" name="ix_users_address">
       <ColNames>address</ColNames>
       <ObjectId>16420</ObjectId>
       <StateNumber>758</StateNumber>
@@ -4210,7 +4480,7 @@ true posixrules
       <CollationIds>100</CollationIds>
       <CollationParentNames>pg_catalog</CollationParentNames>
     </index>
-    <index id="273" parent="265" name="users_pkey">
+    <index id="310" parent="269" name="users_pkey">
       <ColNames>id</ColNames>
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16418</ObjectId>
@@ -4219,7 +4489,7 @@ true posixrules
       <Unique>1</Unique>
       <AccessMethodId>403</AccessMethodId>
     </index>
-    <key id="274" parent="265" name="users_pkey">
+    <key id="311" parent="269" name="users_pkey">
       <NameSurrogate>1</NameSurrogate>
       <ObjectId>16419</ObjectId>
       <Primary>1</Primary>
