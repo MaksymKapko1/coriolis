@@ -42,6 +42,10 @@ class LimitOrderCreate(SQLModel):
     price_usd: float = Field(..., description="Price in USD")
     notional_usd: float = Field(..., description="notional_usd amount")
     is_buy: bool = Field(default=True, description="Is Buy?")
+    take_profit_price: float | None = Field(
+        default=None, description="Take Profit Price"
+    )
+    stop_loss_price: float | None = Field(default=None, description="Stop Loss Price")
 
 
 class LimitOrderCancel(SQLModel):
