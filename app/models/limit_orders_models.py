@@ -19,10 +19,19 @@ class LimitOrder(SQLModel, table=True):
     notional_usd: float = Field(...)
     is_buy: bool = Field(...)
 
+    tp_digest: str | None = Field(default=None)
+    sl_digest: str | None = Field(default=None)
+
     status: str = Field(default="open")  # open | cancelled | filled
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(UTC).replace(tzinfo=None)
-    )
+    filled_notional: float = Field(default=0.0)
+    avg_fill_price: float = Field(default=0.0)
+
+    realized_pnl: float | None = Field(default=None)
+
+
+created_at: datetime = Field(
+    default_factory=lambda: datetime.now(UTC).replace(tzinfo=None)
+)
 
 
 class LimitOrderResponse(SQLModel):
