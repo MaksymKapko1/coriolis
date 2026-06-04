@@ -19,6 +19,7 @@ dependencies = [
     "setuptools>=82.0.1",
     "sqlmodel>=0.0.38",
     "uvicorn>=0.48.0",
+    "websockets>=16.0",
 ]
 
 [dependency-groups]

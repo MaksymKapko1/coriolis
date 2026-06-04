@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -9,6 +10,7 @@ from app.core.config import settings
 from app.core.db_helper import db_helper
 from app.routers import users_router, orders
 from app.routers.indexes_router import router as indexes_router
+from app.services.nado_ws_service import nado_ws_listener
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +21,13 @@ async def lifespan(app: FastAPI):
     async with db_helper.engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
     logger.info("Database setup complete.")
+    task = asyncio.create_task(nado_ws_listener())
     yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(
