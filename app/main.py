@@ -1,5 +1,5 @@
-import logging
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,9 +8,9 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.db_helper import db_helper
-from app.routers import users_router, orders
+from app.routers import orders, users_router
 from app.routers.indexes_router import router as indexes_router
-from app.services.nado_ws_service import nado_ws_listener
+from app.services.nado_ws_service import nado_ws_listener, sync_orders_loop
 
 logger = logging.getLogger(__name__)
 
@@ -18,16 +18,27 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Checking database tables...")
+    from app.models.trading_indexes import TradingIndexes, TradingIndexesAsset  # noqa
+
     async with db_helper.engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
     logger.info("Database setup complete.")
-    task = asyncio.create_task(nado_ws_listener())
+
+    async with db_helper.session_factory() as session:
+        from app.seed.system_indexes import seed_system_indexes
+
+        await seed_system_indexes(session)
+    logger.info("System indexes seeded.")
+    ws_task = asyncio.create_task(nado_ws_listener())
+    sync_task = asyncio.create_task(sync_orders_loop())
     yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+    ws_task.cancel()
+    sync_task.cancel()
+    for task in (ws_task, sync_task):
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(

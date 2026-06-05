@@ -50,13 +50,17 @@ def sign_order(
     product_id: int,
     chain_id: int,
     private_key: str,
+    verifying_contract: str | None = None,
 ) -> tuple[str, str]:
     """
     Sign an order with EIP-712 and return (signature, sender_hex).
     """
-    from .utils import gen_order_verifying_contract, bytes32_to_hex
+    from .utils import bytes32_to_hex, gen_order_verifying_contract
 
-    verifying_contract = gen_order_verifying_contract(product_id)
+    if verifying_contract is None:
+        verifying_contract = gen_order_verifying_contract(product_id)
+
+    # verifying_contract = gen_order_verifying_contract(product_id)
     sender_hex = bytes32_to_hex(sender_bytes32)
 
     domain_data = {

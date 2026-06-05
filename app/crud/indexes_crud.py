@@ -60,6 +60,7 @@ async def create_index(
             product_id=asset.product_id,
             symbol=asset.symbol,
             weight=asset.weight,
+            is_buy=asset.is_buy,
         )
         session.add(db_asset)
 
@@ -93,6 +94,7 @@ async def update_index(
             product_id=asset.product_id,
             symbol=asset.symbol,
             weight=asset.weight,
+            is_buy=asset.is_buy,
         )
         session.add(db_asset)
 

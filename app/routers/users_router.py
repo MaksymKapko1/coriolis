@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends
-from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.auth import get_current_wallet

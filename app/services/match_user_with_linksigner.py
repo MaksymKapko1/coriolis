@@ -1,13 +1,11 @@
 import logging
 
-from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette import status
 from starlette.exceptions import HTTPException
 
 from app.core.security import crypto_manager
 from app.crud.user_crud import get_user_by_address
-from app.models.user import User
 
 logger = logging.getLogger(__name__)
 

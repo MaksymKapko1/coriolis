@@ -2,11 +2,10 @@ import logging
 
 from eth_account import Account
 from fastapi import HTTPException
-from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.security import crypto_manager
-from app.crud.user_crud import get_user_by_address, create_user
+from app.crud.user_crud import create_user, get_user_by_address
 from app.models.user import User
 
 logger = logging.getLogger(__name__)

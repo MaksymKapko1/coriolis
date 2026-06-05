@@ -1,9 +1,8 @@
 import uuid
-from datetime import datetime, UTC
-from typing import Optional, List
+from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import Field, Relationship, SQLModel
 
 
 # --- INDEX ASSET MODELS ---
@@ -11,6 +10,10 @@ class TradingIndexesAssetBase(SQLModel):
     product_id: int = Field(...)
     symbol: str = Field(..., min_length=1)
     weight: float = Field(default=1.0)
+    is_buy: bool = Field(
+        default=True,
+        description="True = Long/Buy, False = Short/Sell",
+    )
 
 
 class TradingIndexesAssetCreate(TradingIndexesAssetBase):
@@ -27,9 +30,8 @@ class TradingIndexesAssetResponse(TradingIndexesAssetBase):
 class TradingIndexesAsset(TradingIndexesAssetBase, table=True):
     __tablename__ = "trading_index_assets"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     index_id: int = Field(foreign_key="trading_indexes.id", ondelete="CASCADE")
-    weight: float = Field(default=1.0)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
@@ -42,23 +44,23 @@ class TradingIndexesBase(SQLModel):
 
 
 class TradingIndexesCreate(TradingIndexesBase):
-    assets: List[TradingIndexesAssetCreate]
+    assets: list[TradingIndexesAssetCreate]
 
 
 class TradingIndexesResponse(TradingIndexesBase):
     id: int
-    user_id: Optional[uuid.UUID]
+    user_id: uuid.UUID | None
     is_system: bool
     created_at: datetime
     updated_at: datetime
 
-    assets: List[TradingIndexesAssetResponse]
+    assets: list[TradingIndexesAssetResponse]
 
 
 class TradingIndexes(TradingIndexesBase, table=True):
     __tablename__ = "trading_indexes"
-    id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: Optional[UUID] = Field(default=None, foreign_key="users.id", nullable=True)
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: UUID | None = Field(default=None, foreign_key="users.id", nullable=True)
     is_system: bool = Field(default=False, nullable=False)
 
     created_at: datetime = Field(
@@ -68,6 +70,6 @@ class TradingIndexes(TradingIndexesBase, table=True):
         default_factory=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
 
-    assets: List[TradingIndexesAsset] = Relationship(
+    assets: list[TradingIndexesAsset] = Relationship(
         back_populates="index", sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )

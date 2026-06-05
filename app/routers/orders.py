@@ -1,6 +1,5 @@
 import logging
 
-from cytoolz.itertoolz import random_sample
 from fastapi import APIRouter, Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette import status
@@ -12,16 +11,18 @@ from app.crud.limit_orders_crud import get_user_open_orders
 from app.crud.user_crud import get_user_by_address
 from app.models.close_market_order import CloseMarketOrder
 from app.models.limit_orders_models import (
-    LimitOrderCreate,
     LimitOrderCancel,
+    LimitOrderCreate,
     LimitOrderResponse,
+    ProductBracketsResponse,
 )
-from app.models.market_order_create import MarketOrderCreate, BatchOrderCreate
+from app.models.market_order_create import BatchOrderCreate, MarketOrderCreate
 from app.services.batch_order_service import place_batch_order
 from app.services.cancel_limit_orders_service import cancel_limit_orders_service
 from app.services.close_order_service import execute_close_order
 from app.services.place_limit_order_service import place_limit_order_service
 from app.services.place_market_order import place_market_order
+from app.services.position_brackets_service import get_active_position_brackets
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,26 @@ async def get_limits_orders(
 
     orders = await get_user_open_orders(session, user.id)
     return orders
+
+
+@router.get(
+    "/position-brackets",
+    response_model=list[ProductBracketsResponse],
+    status_code=status.HTTP_200_OK,
+)
+async def get_position_brackets(
+    main_wallet: str = Depends(get_current_wallet),
+    session: AsyncSession = Depends(db_helper.session_dependency),
+):
+    user = await get_user_by_address(session, main_wallet)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return await get_active_position_brackets(
+        session=session,
+        user_id=user.id,
+        main_wallet=main_wallet,
+    )
 
 
 @router.post("/limit-open", status_code=status.HTTP_201_CREATED)

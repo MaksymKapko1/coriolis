@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import Depends, APIRouter
+from fastapi import APIRouter, Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette import status
 from starlette.exceptions import HTTPException
@@ -8,15 +8,17 @@ from starlette.exceptions import HTTPException
 from app.core.auth import get_current_wallet
 from app.core.db_helper import db_helper
 from app.crud.indexes_crud import (
-    get_default_indexes,
-    get_user_indexes,
-    get_index_by_id,
-    delete_index,
-    update_index,
     create_index as crud_create_index,
 )
+from app.crud.indexes_crud import (
+    delete_index,
+    get_default_indexes,
+    get_index_by_id,
+    get_user_indexes,
+    update_index,
+)
 from app.crud.user_crud import get_user_by_address
-from app.models.trading_indexes import TradingIndexesResponse, TradingIndexesCreate
+from app.models.trading_indexes import TradingIndexesCreate, TradingIndexesResponse
 
 logger = logging.getLogger(__name__)
 

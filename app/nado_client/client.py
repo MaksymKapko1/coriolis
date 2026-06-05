@@ -5,12 +5,14 @@ Handles market order placement without nado-protocol SDK dependency.
 
 import logging
 from dataclasses import dataclass
+from http import client as http_client
 
 import requests
 
 from app.nado_client.signing import sign_order
 from app.nado_client.utils import (
     OrderType,
+    TriggerType,
     build_appendix,
     gen_order_nonce,
     get_expiration_timestamp,
@@ -76,7 +78,7 @@ class NadoClient:
         self.private_key = private_key
         self.session = requests.Session()
         self.session.headers.update({"Accept-Encoding": "gzip"})
-        self.trigger_url = config["trigger_url"]
+        http_client.HTTPConnection.debuglevel = 1
 
     # ------------------------------------------------------------------
     # Public API
@@ -206,19 +208,8 @@ class NadoClient:
             notional_usd=notional_usd,
             price_x18=final_price,
             size_increment=size_increment,
+            min_size=min_size,
         )
-
-        # --- ЖЕСТКИЙ PRINT ДЛЯ ОТЛАДКИ ---
-        print("\n" + "=" * 50)
-        print("!!! LIMIT ORDER DEBUG INFO !!!")
-        print(f"Product ID: {product_id}")
-        print(f"Input Notional: ${notional_usd}")
-        print(f"Input Price: ${price_usd}")
-        print(f"Price x18: {final_price}")
-        print(f"Size Increment: {size_increment}")
-        print(f"Min Size: {min_size}")
-        print(f"Calculated Amount (Base Asset): {amount}")
-        print("=" * 50 + "\n")
 
         if amount <= 0:
             return OrderResult(
@@ -226,11 +217,11 @@ class NadoClient:
                 error=f"Calculated amount is 0. Notional too small or rounded to zero by size_increment ({size_increment})",
             )
 
-        if min_size > 0 and amount < min_size:
-            logger.warning(
-                "Amount (%s) < Min Size (%s). Sending to Nado anyway to test backend enforcement.",
-                amount,
-                min_size,
+        min_notional_usd = min_size / 1e18 if min_size > 0 else 0
+        if min_notional_usd > 0 and notional_usd + 1e-6 < min_notional_usd:
+            return OrderResult(
+                status="failure",
+                error=f"Minimum order notional is ${min_notional_usd:.0f}",
             )
 
         signed_amount = amount if is_buy else -amount
@@ -378,6 +369,7 @@ class NadoClient:
 
         price_increment = book_info["price_increment_x18"]
         size_increment = book_info["size_increment"]
+        min_size = book_info.get("min_size", 0)
 
         if price_increment <= 0:
             return OrderResult(
@@ -395,6 +387,7 @@ class NadoClient:
             notional_usd=notional_usd,
             price_x18=final_price,
             size_increment=size_increment,
+            min_size=min_size,
         )
 
         if amount <= 0:
@@ -511,6 +504,7 @@ class NadoClient:
 
             price_increment = book_info["price_increment_x18"]
             size_increment = book_info["size_increment"]
+            min_size = book_info.get("min_size", 0)
 
             if price_increment <= 0:
                 return OrderResult(
@@ -528,6 +522,7 @@ class NadoClient:
                 notional_usd=notional_usd,
                 price_x18=final_price,
                 size_increment=size_increment,
+                min_size=min_size,
             )
 
             if amount <= 0:
@@ -628,6 +623,7 @@ class NadoClient:
 
         price_increment = book_info["price_increment_x18"]
         size_increment = book_info["size_increment"]
+        min_size = book_info.get("min_size", 0)
 
         raw_price_x18 = to_x18(price_usd)
         final_price = round_x18(raw_price_x18, price_increment)
@@ -636,6 +632,7 @@ class NadoClient:
             notional_usd=notional_usd,
             price_x18=final_price,
             size_increment=size_increment,
+            min_size=min_size,
         )
         if amount <= 0:
             return OrderResult(status="failure", error="Notional too small")
@@ -645,7 +642,9 @@ class NadoClient:
         sender_bytes32 = subaccount_to_bytes32(sender_address, subaccount_name)
         nonce = gen_order_nonce()
         expiration = get_expiration_timestamp(60 * 60 * 24 * 7)  # 7 дней
-        appendix = build_appendix(OrderType.DEFAULT, reduce_only=reduce_only)
+        appendix = build_appendix(
+            OrderType.DEFAULT, reduce_only=reduce_only, trigger_type=TriggerType.PRICE
+        )
 
         signature, sender_hex = sign_order(
             sender_bytes32=sender_bytes32,
@@ -680,7 +679,7 @@ class NadoClient:
                     "nonce": str(nonce),
                     "appendix": str(appendix),
                 },
-                "trigger": {"price_trigger": price_trigger},  # ← единственное отличие
+                "trigger": {"price_trigger": price_trigger},
                 "signature": signature,
             }
         }
@@ -693,16 +692,17 @@ class NadoClient:
             sender_hex,
         )
 
-        resp = self.session.post(f"{self.trigger_url}/execute", json=payload)
-        if resp.status_code != 200:
-            return OrderResult(status="failure", error=resp.text)
-        data = resp.json()
-        return OrderResult(
-            status=data.get("status", "failure"),
-            data=data.get("data"),
-            error=data.get("error"),
-            error_code=data.get("error_code"),
-        )
+        # resp = self.session.post(f"{self.trigger_url}/execute", json=payload)
+        # if resp.status_code != 200:
+        #     return OrderResult(status="failure", error=resp.text)
+        # data = resp.json()
+        # return OrderResult(
+        #     status=data.get("status", "failure"),
+        #     data=data.get("data"),
+        #     error=data.get("error"),
+        #     error_code=data.get("error_code"),
+        # )
+        return self._execute_trigger(payload)
 
     # ------------------------------------------------------------------
     # Internal HTTP helpers
@@ -733,6 +733,33 @@ class NadoClient:
             raise RuntimeError(f"Query failed: {data.get('error')}")
         return data["data"]
 
+    def _execute_trigger(self, payload: dict) -> OrderResult:
+        import time
+
+        for attempt in range(3):
+            try:
+                resp = self.session.post(
+                    f"{self.trigger_url}/execute",
+                    json=payload,
+                    timeout=10,
+                )
+                if resp.status_code != 200:
+                    return OrderResult(status="failure", error=resp.text)
+                data = resp.json()
+                return OrderResult(
+                    status=data.get("status", "failure"),
+                    data=data.get("data"),
+                    error=data.get("error"),
+                    error_code=data.get("error_code"),
+                )
+            except Exception as e:
+                logger.warning("Trigger attempt %s failed: %s", attempt + 1, e)
+                if attempt < 2:
+                    time.sleep(1)
+        return OrderResult(
+            status="failure", error="Trigger endpoint unreachable after 3 attempts"
+        )
+
     def _execute(self, payload: dict) -> OrderResult:
         resp = self.session.post(f"{self.gateway_url}/execute", json=payload)
         if resp.status_code != 200:
@@ -755,10 +782,25 @@ class NadoClient:
         notional_usd: float,
         price_x18: int,
         size_increment: int,
+        min_size: int = 0,
     ) -> int:
+        """
+        Convert USD notional to base amount (x18), rounded to size_increment.
+        If min_size is set (Nado: abs(amount)*price >= min_size), round up so the
+        order meets the exchange minimum (~$100 notional on mainnet perps).
+        """
+        if price_x18 <= 0 or size_increment <= 0:
+            return 0
+
         quote_amount_x18 = to_x18(notional_usd)
         base_amount = quote_amount_x18 * 10**18 // price_x18
-        return round_x18(base_amount, size_increment)
+        amount = round_x18(base_amount, size_increment)
+
+        if min_size > 0:
+            while amount > 0 and mul_x18(amount, price_x18) < min_size:
+                amount += size_increment
+
+        return amount
 
     def _get_product_book_info(
         self, product_id: int, sender_address: str, subaccount_name: str

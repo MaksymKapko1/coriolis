@@ -6,10 +6,9 @@ No pydantic dependency — compatible with both v1 and v2.
 import binascii
 import random
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from enum import IntEnum
-from typing import Optional
 
 # ---------------------------------------------------------------------------
 # OrderType
@@ -33,11 +32,11 @@ def get_expiration_timestamp(seconds_from_now: int) -> int:
 
 
 def gen_order_nonce(
-    recv_time_ms: Optional[int] = None, random_int: Optional[int] = None
+    recv_time_ms: int | None = None, random_int: int | None = None
 ) -> int:
     if recv_time_ms is None:
         recv_time_ms = int(
-            (datetime.now(tz=timezone.utc) + timedelta(seconds=90)).timestamp() * 1000
+            (datetime.now(tz=UTC) + timedelta(seconds=90)).timestamp() * 1000
         )
     if random_int is None:
         random_int = random.randint(0, 999)
@@ -102,10 +101,17 @@ def subaccount_to_hex(owner: str, name: str = "default") -> str:
 APPENDIX_VERSION = 1
 
 
+class TriggerType(IntEnum):
+    NONE = 0
+    PRICE = 1
+    TWAP = 2
+
+
 def build_appendix(
     order_type: OrderType,
     reduce_only: bool = False,
     isolated: bool = False,
+    trigger_type: TriggerType = TriggerType.NONE,
 ) -> int:
     appendix = 0
     appendix |= APPENDIX_VERSION & 0xFF  # bits 7..0: version
@@ -114,6 +120,7 @@ def build_appendix(
     appendix |= (int(order_type) & 0x3) << 9  # bits 10..9: order type
     if reduce_only:
         appendix |= 1 << 11  # bit 11: reduce only
+    appendix |= (int(trigger_type) & 0x3) << 12  # bits 13..12: trigger type
     return appendix
 
 
