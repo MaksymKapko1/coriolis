@@ -52,16 +52,9 @@ app.include_router(users_router.router, prefix=settings.api_v1_prefix)
 app.include_router(orders.router, prefix=settings.api_v1_prefix)
 app.include_router(indexes_router, prefix="/api/v1")
 
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://coriolisxyz.xyz",
-    "https://www.coriolisxyz.xyz",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

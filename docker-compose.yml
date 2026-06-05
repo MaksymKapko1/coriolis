@@ -10,16 +10,25 @@ services:
       - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: always
 
   backend:
     build: .
     container_name: coriolis_backend
     env_file: .env
+    environment:
+      # Inside Docker network Postgres is always postgres:5432 (not localhost/5434/5435)
+      db_url: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     ports:
       - "8000:8000"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: always
 
 volumes:
