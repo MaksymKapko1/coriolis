@@ -3,13 +3,23 @@ services:
     image: postgres:15
     container_name: coriolis_postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: secret_pass
-      POSTGRES_DB: coriolis_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5434:5432"
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  backend:
+    build: .
+    container_name: coriolis_backend
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
     restart: always
 
 volumes:

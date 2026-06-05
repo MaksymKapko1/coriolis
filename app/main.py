@@ -55,6 +55,8 @@ app.include_router(indexes_router, prefix="/api/v1")
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://coriolisxyz.xyz",
+    "https://www.coriolisxyz.xyz",
 ]
 
 app.add_middleware(
